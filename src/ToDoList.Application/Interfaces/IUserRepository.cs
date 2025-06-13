@@ -15,4 +15,5 @@ public interface IUserRepository
     Task<bool> CheckUsernameExists(string username);
     Task<long?> CheckEmailExistsAsync(string email);
     Task<bool> CheckPhoneNumberExists(string phoneNum);
+    Task<List<User>> GetAllUsersAsync();
 }
