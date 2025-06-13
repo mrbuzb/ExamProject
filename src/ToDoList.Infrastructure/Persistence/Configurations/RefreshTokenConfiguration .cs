@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ToDoList.Domain.Entities;
 
-namespace EventSystem.Infrastructure.Persistence.Configurations;
+namespace ToDoList.Infrastructure.Persistence.Configurations;
 
 public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
