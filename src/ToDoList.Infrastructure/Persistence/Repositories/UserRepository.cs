@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,13 @@ namespace ToDoList.Infrastructure.Persistence.Repositories;
 
 public class UserRepository : IUserRepository
 {
+    private readonly AppDbContext _context;
+
+    public UserRepository(AppDbContext context)
+    {
+        _context = context;
+    }
+
     public Task<long> AddUserAync(User user)
     {
         throw new NotImplementedException();
@@ -38,6 +46,11 @@ public class UserRepository : IUserRepository
     public Task DeleteUserByIdAsync(long userId)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<List<User>> GetAllUsersAsync()
+    {
+      return await _context.Users.ToListAsync();
     }
 
     public Task<User> GetUserByEmail(string email)
