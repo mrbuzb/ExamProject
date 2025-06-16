@@ -1,45 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
+using ToDoList.Application.Dtos;
 using ToDoList.Application.Interfaces;
+using ToDoList.Application.Services;
 using ToDoList.Domain.Entities;
 
-namespace ToDoList.Application.Services
+namespace ToDoList.Application.Services;
+
+public class RefreshTokenService : IRefreshTokenService
 {
-    public class RefreshTokenService : IRefreshTokenService
+    private readonly IRefreshTokenRepository _refreshRepo;
+
+    public RefreshTokenService(IRefreshTokenRepository refreshRepo)
     {
-        private readonly IRefreshTokenRepository _refreshTokenRepository;
-        public async Task AddRefreshTokenAsync(RefreshToken refreshToken)
-        {
-            if (refreshToken == null)
-            {
-                throw new ArgumentNullException(nameof(refreshToken), "Refresh token cannot be null.");
-            }
-            await _refreshTokenRepository.AddRefreshToken(refreshToken);
-        }
+        _refreshRepo = refreshRepo;
+    }
 
-        public async Task DeleteRefreshTokenAsync(string refreshToken)
+    public async Task<RefreshToken> CreateRefreshTokenAsync(long userId)
+    {
+        var token = new RefreshToken
         {
-            if (string.IsNullOrEmpty(refreshToken))
-            {
-                throw new ArgumentException("Refresh token cannot be null or empty.", nameof(refreshToken));
-            }
-            await _refreshTokenRepository.DeleteRefreshToken(refreshToken);
-        }
+            UserId = userId,
+            Token = Guid.NewGuid().ToString(),
+            Expires = DateTime.UtcNow.AddDays(7),
+            IsRevoked = false
+        };
 
-        public async Task<RefreshToken> GetRefreshTokenAsync(string refreshToken, long userId)
+        return await _refreshRepo.CreateAsync(token);
+    }
+
+    public async Task<RefreshToken> GetByTokenAsync(string token)
+    {
+        return await _refreshRepo.GetByTokenAsync(token);
+    }
+
+    public async Task RevokeTokenAsync(string token)
+    {
+        var existing = await _refreshRepo.GetByTokenAsync(token);
+        if (existing != null)
         {
-            if (string.IsNullOrEmpty(refreshToken))
-            {
-                throw new ArgumentException("Refresh token cannot be null or empty.", nameof(refreshToken));
-            }
-            if (userId <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(userId), "User ID must be a positive number.");
-            }
-            return await _refreshTokenRepository.SelectRefreshToken(refreshToken, userId);
+            existing.IsRevoked = true;
+            await _refreshRepo.SaveChangesAsync();
         }
     }
 }

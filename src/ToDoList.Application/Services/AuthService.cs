@@ -2,120 +2,85 @@
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using ToDoList.Application.Dtos;
-using ToDoList.Application.Interfaces;
 using ToDoList.Application.Services;
 using ToDoList.Domain.Entities;
 
 public class AuthService : IAuthService
 {
-    private readonly IUserRepository _userRepo;
-    private readonly IConfiguration _config;
+    private readonly IUserService _userService;
+    private readonly IRefreshTokenService _refreshTokenService;
 
-    public AuthService(IUserRepository userRepo, IConfiguration config)
+    public AuthService(IUserService userService, IRefreshTokenService refreshTokenService)
     {
-        _userRepo = userRepo;
-        _config = config;
+        _userService = userService;
+        _refreshTokenService = refreshTokenService;
     }
 
     public async Task<long> SignUpUserAsync(UserCreateDto dto)
     {
-        if (await _userRepo.ExistsByUsername(dto.UserName))
-            throw new Exception("Bu username band");
-
-        var salt = Guid.NewGuid().ToString();
-        var passwordHash = HashPassword(dto.Password, salt);
-
-        var user = new User
-        {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            UserName = dto.UserName,
-            Password = passwordHash,
-            Salt = salt,
-            RoleId = 1 // oddiy user
-        };
-
-        return await _userRepo.CreateUserAsync(user);
+        var user = await _userService.CreateUserAsync(dto);
+        return user.UserId;
     }
 
     public async Task<LoginResponseDto> LoginUserAsync(UserLoginDto dto)
     {
-        var user = await _userRepo.GetByUsernameAsync(dto.UserName);
-        if (user == null)
-            throw new Exception("Foydalanuvchi topilmadi");
+        var user = await _userService.GetUserByUserNameAsync(dto.UserName);
+        if (user == null || user.Password != dto.Password)
+            throw new UnauthorizedAccessException("Invalid credentials");
 
-        var hash = HashPassword(dto.Password, user.Salt);
-        if (hash != user.Password)
-            throw new Exception("Parol noto'g'ri");
-
-        var accessToken = GenerateJwtToken(user);
-        var refreshToken = Guid.NewGuid().ToString();
-
-        await _userRepo.SaveRefreshTokenAsync(user.UserId, refreshToken);
+        var refreshToken = await _refreshTokenService.CreateRefreshTokenAsync(user.UserId);
 
         return new LoginResponseDto
         {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            Username = user.UserName
+            AccessToken = Guid.NewGuid().ToString(),
+            RefreshToken = refreshToken.Token
         };
     }
 
-    public async Task<LoginResponseDto> RefreshTokenAsync(RefreshRequestDto request)
+    public async Task<LoginResponseDto> RefreshTokenAsync(RefreshRequestDto dto)
     {
-        var user = await _userRepo.GetByRefreshTokenAsync(request.RefreshToken);
-        if (user == null)
-            throw new Exception("Token noto'g'ri yoki tugagan");
+        var oldToken = await _refreshTokenService.GetByTokenAsync(dto.Token);
+        if (oldToken == null || oldToken.IsRevoked || oldToken.Expires < DateTime.UtcNow)
+            throw new UnauthorizedAccessException("Token yaroqsiz");
 
-        var newAccessToken = GenerateJwtToken(user);
-        var newRefreshToken = Guid.NewGuid().ToString();
-
-        await _userRepo.ReplaceRefreshTokenAsync(user.UserId, newRefreshToken);
+        var newToken = await _refreshTokenService.CreateRefreshTokenAsync(oldToken.UserId);
+        await _refreshTokenService.RevokeTokenAsync(dto.Token);
 
         return new LoginResponseDto
         {
-            AccessToken = newAccessToken,
-            RefreshToken = newRefreshToken,
-            Username = user.UserName
+            AccessToken = Guid.NewGuid().ToString(),
+            RefreshToken = newToken.Token
         };
     }
 
-    public async Task LogOutAsync(string token)
+    public async Task LogOutAsync(string refreshToken)
     {
-        await _userRepo.RevokeRefreshTokenAsync(token);
+        await _refreshTokenService.RevokeTokenAsync(refreshToken);
     }
 
-    private string HashPassword(string password, string salt)
-    {
-        var sha = SHA256.Create();
-        var combined = Encoding.UTF8.GetBytes(password + salt);
-        var hash = sha.ComputeHash(combined);
-        return Convert.ToBase64String(hash);
-    }
-
-    private string GenerateJwtToken(User user)
+    private string GenerateJwtToken(User user, IConfiguration config)
     {
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName),
-            new Claim("role", user.Role?.Name ?? "User")
-        };
+        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+        new Claim(ClaimTypes.Name, user.UserName),
+        new Claim(ClaimTypes.Role, user.Role?.Name ?? "User")
+    };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: config["Jwt:Issuer"],
+            audience: null,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(20),
+            expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
 }

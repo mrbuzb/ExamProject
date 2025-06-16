@@ -16,3 +16,4 @@ public class User
     public ICollection<ToDoItem> ToDoItems { get; set; }
     public ICollection<RefreshToken> RefreshTokens { get; set; }
 }
+

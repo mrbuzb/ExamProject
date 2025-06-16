@@ -1,4 +1,9 @@
-﻿using MyProject.Extensions;
+﻿using Microsoft.EntityFrameworkCore;
+using MyProject.Extensions;
+using ToDoList.Application.Interfaces;
+using ToDoList.Application.Services;
+using ToDoList.Infrastructure.Persistence;
+using ToDoList.Infrastructure.Persistence.Repositories;
 
 namespace ToDoList.Api
 {
@@ -12,9 +17,19 @@ namespace ToDoList.Api
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
 
-            // 🔐 Auth va Swagger JWT extensionlar
-            builder.Services.AddJwtAuthentication(builder.Configuration);
-            builder.Services.AddSwaggerWithJwt();
+            // 🔐 JWT va Swagger konfiguratsiya
+            ServiceCollectionExtensions.AddSwaggerWithJwt(builder.Services); // Explicitly specify the desired method
+                                                                           
+            // 📦 Servislar va repolar
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+            // 📂 DbContext konfiguratsiyasi
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             var app = builder.Build();
 

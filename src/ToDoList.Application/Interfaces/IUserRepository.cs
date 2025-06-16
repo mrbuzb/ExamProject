@@ -16,4 +16,8 @@ public interface IUserRepository
     Task<long?> CheckEmailExistsAsync(string email);
     Task<bool> CheckPhoneNumberExists(string phoneNum);
     Task<List<User>> GetAllUsersAsync();
+    Task SaveRefreshTokenAsync(long userId, string refreshToken);
+    Task<User> GetByRefreshTokenAsync(string refreshToken);
+    Task ReplaceRefreshTokenAsync(long userId, string newRefreshToken);
+    Task RevokeRefreshTokenAsync(string refreshToken);
 }
