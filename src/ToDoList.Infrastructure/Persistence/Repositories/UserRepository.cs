@@ -23,27 +23,27 @@ public class UserRepository : IUserRepository
         throw new NotImplementedException();
     }
 
-    public Task<long?> CheckEmailExistsAsync(string email)
+    public Task<bool> ExistsByUsername(string username)
     {
         throw new NotImplementedException();
     }
 
-    public Task<bool> CheckPhoneNumberExists(string phoneNum)
+    public Task<User> GetByRefreshTokenAsync(string refreshToken)
     {
         throw new NotImplementedException();
     }
 
-    public Task<bool> CheckUserById(long userId)
+    public Task<User> GetByUsernameAsync(string username)
     {
         throw new NotImplementedException();
     }
 
-    public Task<bool> CheckUsernameExists(string username)
+    public Task ReplaceRefreshTokenAsync(long userId, string newRefreshToken)
     {
         throw new NotImplementedException();
     }
 
-    public Task DeleteUserByIdAsync(long userId)
+    public Task RevokeRefreshTokenAsync(string refreshToken)
     {
         throw new NotImplementedException();
     }

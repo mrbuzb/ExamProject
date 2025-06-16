@@ -1,4 +1,4 @@
-﻿namespace ToDoList.Application.Dtos;
+﻿ namespace ToDoList.Application.Dtos;
 
 public class GetAllResponseModel
 {

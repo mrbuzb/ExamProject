@@ -1,22 +1,46 @@
-﻿using ToDoList.Application.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using ToDoList.Application.Interfaces;
 using ToDoList.Domain.Entities;
 
 namespace ToDoList.Infrastructure.Persistence.Repositories;
 
 public class RoleRepository : IRoleRepository
 {
-    public Task<List<UserRole>> GetAllRolesAsync()
+    private readonly AppDbContext _context;
+
+    public RoleRepository(AppDbContext context)
     {
-        throw new NotImplementedException();
+        _context = context;
     }
 
-    public Task<ICollection<User>> GetAllUsersByRoleAsync(string role)
+    public async Task<List<UserRole>> GetAllRolesAsync()
     {
-        throw new NotImplementedException();
+        return await _context.UserRoles.ToListAsync()
+            ?? throw new InvalidOperationException("No roles found in the database.");
     }
 
-    public Task<long> GetRoleIdAsync(string role)
+    public async Task<ICollection<User>> GetAllUsersByRoleAsync(string role)
     {
-        throw new NotImplementedException();
+        var roleEntity = await _context.UserRoles
+            .FirstOrDefaultAsync(r => r.Name.Equals(role, StringComparison.OrdinalIgnoreCase));
+        if (roleEntity == null)
+        {
+            throw new InvalidOperationException($"Role '{role}' not found.");
+        }
+        return await _context.Users
+            .Where(u => u.RoleId == roleEntity.Id)
+            .ToListAsync() 
+            ?? throw new InvalidOperationException("No users found for the specified role.");
+    }
+
+    public async Task<long> GetRoleIdAsync(string role)
+    {
+        var roleEntity = await _context.UserRoles
+            .FirstOrDefaultAsync(r => r.Name.Equals(role, StringComparison.OrdinalIgnoreCase));
+        if (roleEntity == null)
+        {
+            throw new InvalidOperationException($"Role '{role}' not found.");
+        }
+        return roleEntity.Id;
     }
 }

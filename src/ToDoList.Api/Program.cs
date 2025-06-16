@@ -1,3 +1,4 @@
+﻿using MyProject.Extensions;
 
 namespace ToDoList.Api
 {
@@ -7,16 +8,17 @@ namespace ToDoList.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
+            // 🔧 Service konfiguratsiyalari
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            // 🔐 Auth va Swagger JWT extensionlar
+            builder.Services.AddJwtAuthentication(builder.Configuration);
+            builder.Services.AddSwaggerWithJwt();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // 🔧 Middlewarelar
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -25,8 +27,8 @@ namespace ToDoList.Api
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();   // ⚠️ Auth bo'lsa bu muhim
             app.UseAuthorization();
-
 
             app.MapControllers();
 

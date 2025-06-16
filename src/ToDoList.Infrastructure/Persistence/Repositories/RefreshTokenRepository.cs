@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,18 +11,39 @@ namespace ToDoList.Infrastructure.Persistence.Repositories;
 
 public class RefreshTokenRepository : IRefreshTokenRepository
 {
-    public Task AddRefreshToken(RefreshToken refreshToken)
+    private readonly AppDbContext MainContext;
+
+    public RefreshTokenRepository(AppDbContext mainContext)
     {
-        throw new NotImplementedException();
+        MainContext = mainContext;
     }
 
-    public Task DeleteRefreshToken(string refreshToken)
+    public async Task AddRefreshToken(RefreshToken refreshToken)
     {
-        throw new NotImplementedException();
+        await MainContext.RefreshTokens.AddAsync(refreshToken);
+        await MainContext.SaveChangesAsync();
     }
 
-    public Task<RefreshToken> SelectRefreshToken(string refreshToken, long userId)
+    public async Task DeleteRefreshToken(string refreshToken)
     {
-        throw new NotImplementedException();
+        var token = await MainContext.RefreshTokens
+            .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+        
+        if (token != null)
+        {
+            MainContext.RefreshTokens.Remove(token);
+            await MainContext.SaveChangesAsync();
+        }
+        else
+        {
+            throw new InvalidOperationException("Refresh token not found.");
+        }
+    }
+
+    public async Task<RefreshToken> SelectRefreshToken(string refreshToken, long userId)
+    {
+        var res= await MainContext.RefreshTokens
+            .FirstOrDefaultAsync(rt => rt.Token == refreshToken && rt.UserId == userId);
+        return res ?? throw new InvalidOperationException("Refresh token not found.");
     }
 }
