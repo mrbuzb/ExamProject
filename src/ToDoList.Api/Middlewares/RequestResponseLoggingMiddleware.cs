@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Logging;
+using Serilog.Context;
 using System.Diagnostics;
 using System.Text;
+using ToDoList.Domain.Entities;
+using ToDoList.Infrastructure.Persistence;
 
 public class RequestResponseLoggingMiddleware
 {
@@ -15,7 +18,7 @@ public class RequestResponseLoggingMiddleware
         _logger = logger;
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, AppDbContext db)
     {
         var sw = Stopwatch.StartNew();
 
@@ -36,7 +39,6 @@ public class RequestResponseLoggingMiddleware
 
         try
         {
-            // Response'ni tutish uchun original streamni o‘zgartiramiz
             var originalBody = context.Response.Body;
             using var newBody = new MemoryStream();
             context.Response.Body = newBody;
@@ -45,35 +47,31 @@ public class RequestResponseLoggingMiddleware
 
             sw.Stop();
 
-            newBody.Seek(0, SeekOrigin.Begin);
-            var responseBody = new StreamReader(newBody).ReadToEnd();
-            newBody.Seek(0, SeekOrigin.Begin);
+            context.Response.Body.Seek(0, SeekOrigin.Begin);
             await newBody.CopyToAsync(originalBody);
 
-            var log = $"""
-            🔄 HTTP Request
-            📅 Time       : {DateTime.Now:yyyy-MM-dd HH:mm:ss}
-            🔗 Path       : {method} {path}
-            🎯 Controller : {controller}
-            📍 Action     : {action}
-            📥 Body       : {(!string.IsNullOrWhiteSpace(requestBody) ? requestBody : "None")}
-            ✅ Status     : {context.Response.StatusCode}
-            ⏱️ Duration   : {sw.ElapsedMilliseconds} ms
-            """;
+            var log = new RequestLog
+            {
+                Method = method,
+                Path = path,
+                Controller = controller,
+                Action = action,
+                RequestBody = requestBody,
+                StatusCode = context.Response.StatusCode,
+                ResponseTimeMs = sw.ElapsedMilliseconds,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            _logger.LogInformation(log);
+            db.RequestLogs.Add(log);
+            await db.SaveChangesAsync();
+
+            _logger.LogInformation("Logged to DB: {method} {path} ({status})", method, path, context.Response.StatusCode);
         }
         catch (Exception ex)
         {
-            sw.Stop();
-            _logger.LogError(ex, $"""
-            💥 EXCEPTION in {method} {path}
-            ❌ Controller: {controller}, Action: {action}
-            ⏱️ Duration  : {sw.ElapsedMilliseconds} ms
-            🧾 Request Body: {requestBody}
-            """);
-
+            _logger.LogError(ex, "Error during logging");
             throw;
         }
     }
 }
+

@@ -15,48 +15,44 @@ namespace ToDoList.Api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Serilog konfiguratsiyasi
             Log.Logger = new LoggerConfiguration()
-             .MinimumLevel.Information()
-             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-             .Enrich.FromLogContext()
-             .WriteTo.File(
-                 path: "Logs/log-.txt",
-                 rollingInterval: RollingInterval.Day,
-                 outputTemplate: "{Message:lj}{NewLine}"
-             )
-             .CreateLogger();
+                .ReadFrom.Configuration(builder.Configuration) // 🔁 appsettings.json dan o‘qiydi
+                .Enrich.FromLogContext()
+                .WriteTo.File(
+                    path: "Logs/log-.txt",
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                )
+                .CreateLogger();
 
-            builder.Host.UseSerilog();
+            builder.Host.UseSerilog(); // Serilog’ni ulash
 
-
-
-
-            builder.Host.UseSerilog();
-            // 🔧 Service konfiguratsiyalari
+            // 📦 Service va Controller’lar
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
 
-            // 🔐 JWT va Swagger konfiguratsiya
-            ServiceCollectionExtensions.AddSwaggerWithJwt(builder.Services); // Explicitly specify the desired method
+            // JWT + Swagger konfiguratsiya
+            ServiceCollectionExtensions.AddSwaggerWithJwt(builder.Services);
 
-            // 📦 Servislar va repolar
+            // 👨‍💻 Servis va repo implementatsiyalari
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
-
-
-            // 📂 DbContext konfiguratsiyasi
+            // 📂 DB ulash
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             var app = builder.Build();
 
+            // 🌐 Middleware loglash
             app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
-            // 🔧 Middlewarelar
+            // 📄 Swagger faqat dev uchun
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -64,13 +60,12 @@ namespace ToDoList.Api
             }
 
             app.UseHttpsRedirection();
-
-            app.UseAuthentication();   // ⚠️ Auth bo'lsa bu muhim
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
-
             app.Run();
         }
     }
+
 }
