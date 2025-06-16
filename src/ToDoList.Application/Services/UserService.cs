@@ -28,7 +28,9 @@ public class UserService : IUserService
             Password = hashedPassword,
             Salt = salt,
             PhoneNumber = dto.PhoneNumber,
-            Email = dto.Email
+            Email = dto.Email,
+            RoleId = dto.RoleId,
+
         };
 
         var userId = await _userRepo.AddUserAync(user);
