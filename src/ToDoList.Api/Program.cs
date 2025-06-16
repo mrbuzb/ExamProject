@@ -1,3 +1,9 @@
+﻿using Microsoft.EntityFrameworkCore;
+using MyProject.Extensions;
+using ToDoList.Application.Interfaces;
+using ToDoList.Application.Services;
+using ToDoList.Infrastructure.Persistence;
+using ToDoList.Infrastructure.Persistence.Repositories;
 
 namespace ToDoList.Api
 {
@@ -7,16 +13,27 @@ namespace ToDoList.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
+            // 🔧 Service konfiguratsiyalari
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            // 🔐 JWT va Swagger konfiguratsiya
+            ServiceCollectionExtensions.AddSwaggerWithJwt(builder.Services); // Explicitly specify the desired method
+                                                                           
+            // 📦 Servislar va repolar
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+            // 📂 DbContext konfiguratsiyasi
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // 🔧 Middlewarelar
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -25,8 +42,8 @@ namespace ToDoList.Api
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();   // ⚠️ Auth bo'lsa bu muhim
             app.UseAuthorization();
-
 
             app.MapControllers();
 

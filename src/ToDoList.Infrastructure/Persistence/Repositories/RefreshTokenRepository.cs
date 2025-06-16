@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,18 +11,32 @@ namespace ToDoList.Infrastructure.Persistence.Repositories;
 
 public class RefreshTokenRepository : IRefreshTokenRepository
 {
-    public Task AddRefreshToken(RefreshToken refreshToken)
+    private readonly AppDbContext _context;
+
+    public RefreshTokenRepository(AppDbContext context)
     {
-        throw new NotImplementedException();
+        _context = context;
     }
 
-    public Task DeleteRefreshToken(string refreshToken)
+    public async Task<RefreshToken> CreateAsync(RefreshToken token)
     {
-        throw new NotImplementedException();
+        _context.RefreshTokens.Add(token);
+        await _context.SaveChangesAsync();
+        return token;
     }
 
-    public Task<RefreshToken> SelectRefreshToken(string refreshToken, long userId)
+    public async Task<RefreshToken> GetByTokenAsync(string token)
     {
-        throw new NotImplementedException();
+        var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == token);
+        if (refreshToken == null)
+        {
+            throw new InvalidOperationException($"Refresh token with token '{token}' not found.");
+        }
+        return refreshToken;
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
     }
 }
