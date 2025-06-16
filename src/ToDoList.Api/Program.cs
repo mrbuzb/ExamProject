@@ -51,6 +51,7 @@ namespace ToDoList.Api
 
             // 🌐 Middleware loglash
             app.UseMiddleware<RequestResponseLoggingMiddleware>();
+            app.UseMiddleware<SuccessRequestLoggingMiddleware>();
 
             // 📄 Swagger faqat dev uchun
             if (app.Environment.IsDevelopment())
