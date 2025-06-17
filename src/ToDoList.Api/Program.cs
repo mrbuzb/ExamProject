@@ -16,6 +16,10 @@ namespace ToDoList.Api
             builder.Services.AddJwtAuthentication(builder.Configuration);
             builder.Services.AddSwaggerWithJwt();
 
+            builder.Services.AddDbContext<PostgresDbContext>(options =>
+               options.UseNpgsql(builder.Configuration.GetConnectionString("NpgslConnection")));
+
+
             var app = builder.Build();
 
             // 🔧 Middlewarelar
