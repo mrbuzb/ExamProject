@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ToDoList.Application.Serveces;
+using ToDoList.Application.Services;
 
 namespace ToDoList.Api.Endpoints;
 
@@ -19,6 +20,14 @@ public static class AdminEndpoints
             return Results.Ok(users);
         })
             .WithName("GetAllUsers");
+
+        app.MapGet("/api/todos/search", async (
+            [FromQuery] string keyword,
+            IToDoItemService service) =>
+        {
+            var result = await service.SearchToDoItemsAsync(keyword);
+            return Results.Ok(result);
+        });
 
     }
 }
