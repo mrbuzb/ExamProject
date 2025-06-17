@@ -49,10 +49,13 @@ public class ToDoItemRepository : IToDoItemRepository
     }
 
 
-    public Task<ICollection<ToDoItem>> SelectCompletedAsync()
+    public async Task<ICollection<ToDoItem>> SelectCompletedAsync()
     {
-        throw new NotImplementedException();
+        return await _context.ToDoItems
+            .Where(x => x.IsCompleted)
+            .ToListAsync();
     }
+
 
     public Task<ICollection<ToDoItem>> SelectIncompletedAsync()
     {
