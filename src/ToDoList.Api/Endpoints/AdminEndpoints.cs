@@ -66,5 +66,22 @@ public static class AdminEndpoints
         .WithName("GetCompletedToDos")
         .WithTags("ToDoItems");
 
+        app.MapGet("/todo/incompleted", async (
+         [FromServices] IToDoItemRepository repository,
+         HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            var items = await repository.SelectIncompletedAsync();
+            return Results.Ok(items);
+        })
+        .WithName("GetIncompletedToDos")
+        .WithTags("ToDoItems");
+
     }
 }
