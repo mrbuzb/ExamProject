@@ -4,7 +4,7 @@ namespace ToDoList.Application.Interfaces;
 
 public interface IRefreshTokenRepository
 {
-    Task AddRefreshToken(RefreshToken refreshToken);
-    Task<RefreshToken> SelectRefreshToken(string refreshToken, long userId);
-    Task DeleteRefreshToken(string refreshToken);
+    Task<RefreshToken> CreateAsync(RefreshToken token);
+    Task<RefreshToken> GetByTokenAsync(string token);
+    Task SaveChangesAsync();
 }

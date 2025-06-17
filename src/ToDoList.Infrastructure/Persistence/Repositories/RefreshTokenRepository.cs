@@ -11,39 +11,32 @@ namespace ToDoList.Infrastructure.Persistence.Repositories;
 
 public class RefreshTokenRepository : IRefreshTokenRepository
 {
-    private readonly AppDbContext MainContext;
+    private readonly AppDbContext _context;
 
-    public RefreshTokenRepository(AppDbContext mainContext)
+    public RefreshTokenRepository(AppDbContext context)
     {
-        MainContext = mainContext;
+        _context = context;
     }
 
-    public async Task AddRefreshToken(RefreshToken refreshToken)
+    public async Task<RefreshToken> CreateAsync(RefreshToken token)
     {
-        await MainContext.RefreshTokens.AddAsync(refreshToken);
-        await MainContext.SaveChangesAsync();
+        _context.RefreshTokens.Add(token);
+        await _context.SaveChangesAsync();
+        return token;
     }
 
-    public async Task DeleteRefreshToken(string refreshToken)
+    public async Task<RefreshToken> GetByTokenAsync(string token)
     {
-        var token = await MainContext.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
-        
-        if (token != null)
+        var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == token);
+        if (refreshToken == null)
         {
-            MainContext.RefreshTokens.Remove(token);
-            await MainContext.SaveChangesAsync();
+            throw new InvalidOperationException($"Refresh token with token '{token}' not found.");
         }
-        else
-        {
-            throw new InvalidOperationException("Refresh token not found.");
-        }
+        return refreshToken;
     }
 
-    public async Task<RefreshToken> SelectRefreshToken(string refreshToken, long userId)
+    public async Task SaveChangesAsync()
     {
-        var res= await MainContext.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == refreshToken && rt.UserId == userId);
-        return res ?? throw new InvalidOperationException("Refresh token not found.");
+        await _context.SaveChangesAsync();
     }
 }

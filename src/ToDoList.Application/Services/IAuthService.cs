@@ -1,12 +1,11 @@
 ﻿using ToDoList.Application.Dtos;
 
-namespace ToDoList.Application.Services
+namespace ToDoList.Application.Services;
+
+public interface IAuthService
 {
-    public interface IAuthService
-    {
-        Task<long> SignUpUserAsync(UserCreateDto userCreateDto);
-        Task<LoginResponseDto> LoginUserAsync(UserLoginDto userLoginDto);
-        Task<LoginResponseDto> RefreshTokenAsync(RefreshRequestDto request);
-        Task LogOutAsync(string token);
-    }
+    Task<long> SignUpUserAsync(UserCreateDto dto);
+    Task<LoginResponseDto> LoginUserAsync(UserLoginDto dto);
+    Task<LoginResponseDto> RefreshTokenAsync(RefreshRequestDto dto);
+    Task LogOutAsync(string refreshToken);
 }

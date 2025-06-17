@@ -1,64 +1,100 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using ToDoList.Infrastructure.Persistence;
+using ToDoList.Application.Dtos;
+using ToDoList.Application.Services;
 
-[ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+namespace ToDoList.Server.Controllers
 {
-    private readonly AppDbContext _context;
-    private readonly IConfiguration _configuration;
-
-    public AuthController(AppDbContext context, IConfiguration configuration)
+    [Route("api/auth")]
+    [ApiController]
+    public class AuthController : ControllerBase
     {
-        _context = context;
-        _configuration = configuration;
-    }
+        private readonly IAuthService _authService;
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    {
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == request.Username);
-
-        if (user == null)
-            return Unauthorized("Bunday foydalanuvchi topilmadi");
-
-        // 👉 Parol tekshiruvi (oddiy string, xashlangan bo‘lsa alohida)
-        if (user.PasswordHash != request.Password)
-            return Unauthorized("Parol noto'g'ri");
-
-        var token = GenerateJwtToken(user.Username);
-        return Ok(new { token });
-    }
-
-    private string GenerateJwtToken(string username)
-    {
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-        var issuer = _configuration["Jwt:Issuer"];
-        var audience = _configuration["Jwt:Audience"];
-
-        var claims = new[]
+        public AuthController(IAuthService authService)
         {
-            new Claim(ClaimTypes.Name, username),
-        };
+            _authService = authService;
+        }
 
-        var tokenDescriptor = new SecurityTokenDescriptor
+        /// <summary>
+        /// Foydalanuvchini ro‘yxatdan o‘tkazadi
+        /// </summary>
+        /// <remarks>
+        /// Namuna so‘rov:
+        ///
+        ///     POST /api/auth/signUp
+        ///     {
+        ///         "firstName": "Ali",
+        ///         "lastName": "Valiyev",
+        ///         "userName": "alivaliev",
+        ///         "password": "Password123!",
+        ///         "phoneNumber": "+998901234567",
+        ///         "email": "ali@example.com",
+        ///         "roleId": 2
+        ///     }
+        /// </remarks>
+        /// <response code="200">Yaratilgan foydalanuvchi ID'si qaytariladi</response>
+        [HttpPost("signUp")]
+        public async Task<ActionResult<long>> SignUp([FromBody] UserCreateDto dto)
         {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddHours(1),
-            Issuer = issuer,
-            Audience = audience,
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
-        };
+            var userId = await _authService.SignUpUserAsync(dto);
+            return Ok(userId);
+        }
 
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        /// <summary>
+        /// Foydalanuvchini tizimga kirgizadi (login)
+        /// </summary>
+        /// <remarks>
+        /// Namuna so‘rov:
+        ///
+        ///     POST /api/auth/login
+        ///     {
+        ///         "userName": "alivaliev",
+        ///         "password": "Password123!"
+        ///     }
+        /// </remarks>
+        /// <response code="200">Access va refresh tokenlar qaytariladi</response>
+        /// <response code="401">Login yoki parol noto‘g‘ri</response>
+        [HttpPost("login")]
+        public async Task<ActionResult<LoginResponseDto>> Login([FromBody] UserLoginDto dto)
+        {
+            var result = await _authService.LoginUserAsync(dto);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Refresh token orqali yangi access token oladi
+        /// </summary>
+        /// <remarks>
+        /// Namuna so‘rov:
+        ///
+        ///     POST /api/auth/refreshToken
+        ///     {
+        ///         "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+        ///     }
+        /// </remarks>
+        /// <response code="200">Yangi access va refresh token qaytariladi</response>
+        /// <response code="401">Refresh token noto‘g‘ri yoki eskirgan</response>
+        [HttpPost("refreshToken")]
+        public async Task<ActionResult<LoginResponseDto>> RefreshToken([FromBody] RefreshRequestDto dto)
+        {
+            var result = await _authService.RefreshTokenAsync(dto);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Foydalanuvchini tizimdan chiqaradi (logout)
+        /// </summary>
+        /// <remarks>
+        /// Namuna so‘rov:
+        ///
+        ///     DELETE /api/auth/logOut?token=eyJhbGciOiJIUzI1NiIs...
+        /// </remarks>
+        /// <response code="204">Muvaffaqiyatli logOut qilindi</response>
+        [HttpDelete("logOut")]
+        public async Task<IActionResult> LogOut([FromQuery] string token)
+        {
+            await _authService.LogOutAsync(token);
+            return NoContent();
+        }
     }
 }
