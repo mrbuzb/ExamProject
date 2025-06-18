@@ -118,4 +118,15 @@ public class ToDoItemRepository : IToDoItemRepository
         }
     }
 
+
+    public async Task SetDueDateAsync(long id, long userId, DateTime dueDate)
+    {
+        var item = await _context.ToDoItems.FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
+        if (item is null)
+            throw new Exception("ToDo item not found");
+
+        item.DueDate = dueDate;
+        await _context.SaveChangesAsync();
+    }
+
 }

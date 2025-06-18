@@ -21,5 +21,6 @@ public interface IToDoItemRepository
     Task<ICollection<ToDoItem>> SelectOverdueItemsAsync(long userId);
     Task<int> SelectTotalCountAsync();
     Task MarkAsCompletedAsync(long id, long userId);
+    Task SetDueDateAsync(long id, long userId, DateTime dueDate);
 
 }

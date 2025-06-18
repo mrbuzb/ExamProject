@@ -145,5 +145,32 @@ public static class AdminEndpoints
         .WithName("UpdateToDoItem")
         .WithTags("ToDoItems");
 
+
+        app.MapPut("/todo/{id}/set-due-date", async (
+        long id,
+        [FromBody] DateTime dueDate,
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            try
+            {
+                await repository.SetDueDateAsync(id, userId, dueDate);
+                return Results.Ok($"Due date set to {dueDate}");
+            }
+            catch (Exception ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+        })
+        .WithName("SetToDoDueDate")
+        .WithTags("ToDoItems");
+
     }
 }
