@@ -211,5 +211,61 @@ public static class AdminEndpoints
         .WithName("GetToDoSummary")
         .WithTags("ToDoItems");
 
+
+        app.MapPost("/todo", async (
+        [FromBody] ToDoItem toDoItem,
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            toDoItem.UserId = userId;
+            var id = await repository.InsertToDoItemAsync(toDoItem);
+            return Results.Created($"/todo/{id}", new { Id = id });
+        })
+        .WithName("CreateToDoItem")
+        .WithTags("ToDoItems");
+
+
+        app.MapGet("/todo/{id:long}", async (
+        long id,
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            try
+            {
+                var item = await repository.SelectToDoItemByIdAsync(id, userId);
+                return Results.Ok(item);
+            }
+            catch (KeyNotFoundException)
+            {
+                return Results.NotFound();
+            }
+        })
+        .WithName("GetToDoItemById")
+        .WithTags("ToDoItems");
+
+
+        app.MapGet("/todo/count", async (
+         [FromServices] IToDoItemRepository repository) =>   
+        {
+            var count = await repository.SelectTotalCountAsync();
+            return Results.Ok(count);
+        })
+        .WithName("GetTotalToDoCount")
+        .WithTags("ToDoItems");
+
     }
 }

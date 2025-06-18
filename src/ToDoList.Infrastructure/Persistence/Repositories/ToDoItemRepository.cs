@@ -30,10 +30,13 @@ public class ToDoItemRepository : IToDoItemRepository
     }
 
 
-    public Task<long> InsertToDoItemAsync(ToDoItem toDoItem)
+    public async Task<long> InsertToDoItemAsync(ToDoItem toDoItem)
     {
-        throw new NotImplementedException();
+        await _context.ToDoItems.AddAsync(toDoItem);
+        await _context.SaveChangesAsync();
+        return toDoItem.ToDoItemId;
     }
+
 
     public async Task<ICollection<ToDoItem>> SearchToDoItemsAsync(string keyword)
     {
@@ -85,15 +88,23 @@ public class ToDoItemRepository : IToDoItemRepository
     }
 
 
-    public Task<ToDoItem> SelectToDoItemByIdAsync(long id, long userId)
+    public async Task<ToDoItem> SelectToDoItemByIdAsync(long id, long userId)
     {
-        throw new NotImplementedException();
+        var item = await _context.ToDoItems
+            .FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
+
+        if (item is null)
+            throw new KeyNotFoundException("ToDo item not found");
+
+        return item;
     }
 
-    public Task<int> SelectTotalCountAsync()
+
+    public async Task<int> SelectTotalCountAsync()
     {
-        throw new NotImplementedException();
+        return await _context.ToDoItems.CountAsync();
     }
+
 
     public async Task UpdateToDoItemAsync(ToDoItem toDoItem)
     {
