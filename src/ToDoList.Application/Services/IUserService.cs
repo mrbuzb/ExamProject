@@ -14,5 +14,5 @@ public interface IUserService
     Task<User> GetUserByUserNameAsync(string username);
     Task<User> GetUserByIdAsync(long userId);
     Task<List<UserGetDto>> GetAllUsersAsync();
-    Task UpdateASync(UserGetDto dto);
+    Task UpdateAsync(UserGetDto dto);
 }
