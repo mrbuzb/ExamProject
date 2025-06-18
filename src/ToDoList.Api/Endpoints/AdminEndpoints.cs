@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ToDoList.Application.Interfaces;
 using ToDoList.Application.Services;
+using ToDoList.Domain.Entities;
 
 namespace ToDoList.Api.Endpoints;
 
@@ -114,6 +115,34 @@ public static class AdminEndpoints
             return Results.Ok("ToDo marked as completed.");
         })
         .WithName("MarkToDoCompleted")
+        .WithTags("ToDoItems");
+
+
+        app.MapPut("/todo/update", async (
+        [FromBody] ToDoItem updatedItem,
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            updatedItem.UserId = userId;
+
+            try
+            {
+                await repository.UpdateToDoItemAsync(updatedItem);
+                return Results.Ok("ToDo item updated successfully");
+            }
+            catch (KeyNotFoundException)
+            {
+                return Results.NotFound("ToDo item not found");
+            }
+        })
+        .WithName("UpdateToDoItem")
         .WithTags("ToDoItems");
 
     }
