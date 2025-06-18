@@ -30,5 +30,44 @@ namespace ToDoList.Application.Services
             }).ToList();
         }
 
+        public async Task<ICollection<ToDoItemGetDto>> GetAllToDoItemsByUserIdAsync(long userId)
+        {
+            var items = await _toDoItemRepository.SelectAllToDoItemsByUserIdAsync(userId);
+            return items.Select(item => new ToDoItemGetDto
+            {
+                ToDoItemId = item.ToDoItemId,
+                Title = item.Title,
+                Description = item.Description,
+                DueDate = item.DueDate,
+                IsCompleted = item.IsCompleted
+            }).ToList();
+        }
+
+        public async Task<ICollection<ToDoItemGetDto>> GetByDueDateAsync(DateTime dueDate, long userId)
+        {
+            var items = await _toDoItemRepository.SelectByDueDateAsync(dueDate, userId);
+            return items.Select(item => new ToDoItemGetDto
+            {
+                ToDoItemId = item.ToDoItemId,
+                Title = item.Title,
+                Description = item.Description,
+                DueDate = item.DueDate,
+                IsCompleted = item.IsCompleted
+            }).ToList();
+        }
+
+        public async Task<ICollection<ToDoItemGetDto>> GetOverdueItemsAsync(long userId)
+        {
+            var items = await _toDoItemRepository.SelectOverdueItemsAsync(userId);
+            return items.Select(item => new ToDoItemGetDto
+            {
+                ToDoItemId = item.ToDoItemId,
+                Title = item.Title,
+                Description = item.Description,
+                DueDate = item.DueDate,
+                IsCompleted = item.IsCompleted
+            }).ToList();
+        }
+
     }
 }
