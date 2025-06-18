@@ -50,9 +50,9 @@ public static class AdminEndpoints
         .WithName("FilterToDoByDueDate")
         .WithTags("ToDoItems");
 
-        app.MapGet("/todo/overdue", async (
-            [FromServices] IToDoItemService service,
-            HttpContext httpContext) =>
+        app.MapGet("/todo/completed", async (
+         [FromServices] IToDoItemRepository repository,
+          HttpContext httpContext) =>
         {
             if (!httpContext.User.Identity.IsAuthenticated)
                 return Results.Unauthorized();
@@ -61,20 +61,11 @@ public static class AdminEndpoints
             if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
                 return Results.BadRequest("Invalid user ID");
 
-            var items = await service.GetOverdueItemsAsync(userId);
+            var items = await repository.SelectCompletedAsync();
             return Results.Ok(items);
         })
-        .WithName("GetOverdueToDos")
+        .WithName("GetCompletedToDos")
         .WithTags("ToDoItems");
-
-
-        app.MapGet("/api/todos/user/{userId:long}", async (long userId, IToDoItemService service) =>
-        {
-            var todos = await service.GetAllToDoItemsByUserIdAsync(userId);
-            return Results.Ok(todos);
-        })
-        .WithName("GetToDosByUserId")
-        .WithTags("ToDos");
 
     }
 }
