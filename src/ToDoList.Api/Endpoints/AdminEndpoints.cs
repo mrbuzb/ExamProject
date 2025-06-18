@@ -22,6 +22,8 @@ public static class AdminEndpoints
         })
             .WithName("GetAllUsers");
 
+
+
         app.MapGet("/api/todos/search", async (
             [FromQuery] string keyword,
             IToDoItemService service) =>
@@ -31,9 +33,9 @@ public static class AdminEndpoints
         });
 
         app.MapGet("/todo/filter-by-date", async (
-         [FromQuery] DateTime dueDate,
-         [FromServices] IToDoItemRepository repository,
-         HttpContext httpContext) =>
+    [FromQuery] DateTime dueDate,
+    [FromServices] IToDoItemService service,
+    HttpContext httpContext) =>
         {
             if (!httpContext.User.Identity.IsAuthenticated)
                 return Results.Unauthorized();
@@ -42,15 +44,15 @@ public static class AdminEndpoints
             if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
                 return Results.BadRequest("Invalid user ID");
 
-            var items = await repository.SelectByDueDateAsync(dueDate, userId);
+            var items = await service.GetByDueDateAsync(dueDate, userId);
             return Results.Ok(items);
         })
-        .WithName("FilterToDoByDueDate")
-        .WithTags("ToDoItems");
+.WithName("FilterToDoByDueDate")
+.WithTags("ToDoItems");
 
         app.MapGet("/todo/overdue", async (
-        [FromServices] IToDoItemRepository repository,
-        HttpContext httpContext) =>
+            [FromServices] IToDoItemService service,
+            HttpContext httpContext) =>
         {
             if (!httpContext.User.Identity.IsAuthenticated)
                 return Results.Unauthorized();
@@ -59,11 +61,20 @@ public static class AdminEndpoints
             if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
                 return Results.BadRequest("Invalid user ID");
 
-            var items = await repository.SelectOverdueItemsAsync(userId);
+            var items = await service.GetOverdueItemsAsync(userId);
             return Results.Ok(items);
         })
         .WithName("GetOverdueToDos")
         .WithTags("ToDoItems");
+
+
+        app.MapGet("/api/todos/user/{userId:long}", async (long userId, IToDoItemService service) =>
+        {
+            var todos = await service.GetAllToDoItemsByUserIdAsync(userId);
+            return Results.Ok(todos);
+        })
+.WithName("GetToDosByUserId")
+.WithTags("ToDos");
 
     }
 }
