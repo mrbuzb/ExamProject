@@ -42,6 +42,8 @@ namespace ToDoList.Api
             builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            builder.Services.AddMemoryCache();
+
 
             // 📂 DB ulash
             builder.Services.AddDbContext<AppDbContext>(options =>

@@ -18,7 +18,7 @@ public class UserRepository : IUserRepository
         _context = context;
     }
 
-    public async Task<long> AddUserAync(User user)
+    public async Task<long> AddUserAsync(User user)
     {
         var existingUser = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == user.Email || u.UserName == user.UserName);
@@ -109,7 +109,7 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task<User> GetUserByIdAync(long id)
+    public async Task<User> GetUserByIdAsync(long id)
     {
         var user = await _context.Users
             .AsNoTracking()
@@ -123,7 +123,7 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task<User> GetUserByUserNameAync(string userName)
+    public async Task<User> GetUserByUserNameAsync(string userName)
     {
         var user = await _context.Users
             .AsNoTracking()

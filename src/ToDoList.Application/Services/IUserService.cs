@@ -12,4 +12,7 @@ public interface IUserService
 {
     Task<User> CreateUserAsync(UserCreateDto dto);
     Task<User> GetUserByUserNameAsync(string username);
+    Task<User> GetUserByIdAsync(long userId);
+    Task<List<UserGetDto>> GetAllUsersAsync();
+    Task UpdateASync(UserGetDto dto);
 }
