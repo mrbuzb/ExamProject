@@ -68,9 +68,11 @@ public class ToDoItemRepository : IToDoItemRepository
     }
 
 
-    public Task<ICollection<ToDoItem>> SelectIncompletedAsync()
+    public async Task<ICollection<ToDoItem>> SelectIncompletedAsync()
     {
-        throw new NotImplementedException();
+        return await _context.ToDoItems
+            .Where(x => !x.IsCompleted)
+            .ToListAsync();
     }
 
     public async Task<ICollection<ToDoItem>> SelectOverdueItemsAsync(long userId)
