@@ -11,7 +11,6 @@ using ToDoList.Infrastructure.Persistence;
 
 namespace ToDoList.Infrastructure.Migrations.PostgreSQL
 {
-    [DbContext(typeof(PostgresDbContext))]
     [Migration("20250617093646_InitPostgres")]
     partial class InitPostgres
     {

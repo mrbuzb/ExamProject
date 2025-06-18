@@ -13,6 +13,7 @@ public class RequestLogRepository : IRequestLogRepository
         _context = context;
     }
 
+
     public async Task LogAsync(RequestLog log)
     {
         _context.RequestLogs.Add(log);

@@ -59,6 +59,7 @@ namespace MyProject.Extensions
                     }
                 });
             });
+           
 
             return services;
         }
