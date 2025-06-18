@@ -54,7 +54,7 @@ public static class AdminEndpoints
 
 
         app.MapGet("/todo/overdue", async (
-            [FromServices] IToDoItemService service,
+            [FromServices] IToDoItemRepository repository,
             HttpContext httpContext) =>
         {
             if (!httpContext.User.Identity.IsAuthenticated)
