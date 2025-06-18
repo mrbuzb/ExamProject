@@ -16,10 +16,18 @@ public class ToDoItemRepository : IToDoItemRepository
     {
         _context = context;
     }
-    public Task DeleteToDoItemByIdAsync(long id, long userId)
+    public async Task DeleteToDoItemByIdAsync(long id, long userId)
     {
-        throw new NotImplementedException();
+        var item = await _context.ToDoItems
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+
+        if (item is not null)
+        {
+            _context.ToDoItems.Remove(item);
+            await _context.SaveChangesAsync();
+        }
     }
+
 
     public Task<long> InsertToDoItemAsync(ToDoItem toDoItem)
     {

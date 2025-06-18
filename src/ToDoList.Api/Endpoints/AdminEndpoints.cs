@@ -33,9 +33,9 @@ public static class AdminEndpoints
         });
 
         app.MapGet("/todo/filter-by-date", async (
-    [FromQuery] DateTime dueDate,
-    [FromServices] IToDoItemService service,
-    HttpContext httpContext) =>
+        [FromQuery] DateTime dueDate,
+        [FromServices] IToDoItemService service,
+        HttpContext httpContext) =>
         {
             if (!httpContext.User.Identity.IsAuthenticated)
                 return Results.Unauthorized();
@@ -47,8 +47,8 @@ public static class AdminEndpoints
             var items = await service.GetByDueDateAsync(dueDate, userId);
             return Results.Ok(items);
         })
-.WithName("FilterToDoByDueDate")
-.WithTags("ToDoItems");
+        .WithName("FilterToDoByDueDate")
+        .WithTags("ToDoItems");
 
         app.MapGet("/todo/overdue", async (
             [FromServices] IToDoItemService service,
@@ -73,8 +73,26 @@ public static class AdminEndpoints
             var todos = await service.GetAllToDoItemsByUserIdAsync(userId);
             return Results.Ok(todos);
         })
-.WithName("GetToDosByUserId")
-.WithTags("ToDos");
+        .WithName("GetToDosByUserId")
+        .WithTags("ToDos");
+
+        app.MapDelete("/todo/{id:long}", async (
+        long id,
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            await repository.DeleteToDoItemByIdAsync(id, userId);
+            return Results.NoContent();
+        })
+        .WithName("DeleteToDoItem")
+        .WithTags("ToDoItems");
 
     }
 }
