@@ -14,6 +14,7 @@ namespace MyProject.Extensions
                     Title = "ToDoList API",
                     Version = "v1"
                 });
+                c.DescribeAllParametersInCamelCase();
 
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
@@ -23,6 +24,7 @@ namespace MyProject.Extensions
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "Bearer"
                 });
+
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
@@ -39,6 +41,7 @@ namespace MyProject.Extensions
                     }
                 });
             });
+
 
             return services;
         }
