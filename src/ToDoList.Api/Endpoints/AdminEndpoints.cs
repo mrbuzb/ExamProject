@@ -33,9 +33,9 @@ public static class AdminEndpoints
         });
 
         app.MapGet("/todo/filter-by-date", async (
-    [FromQuery] DateTime dueDate,
-    [FromServices] IToDoItemService service,
-    HttpContext httpContext) =>
+        [FromQuery] DateTime dueDate,
+        [FromServices] IToDoItemService service,
+        HttpContext httpContext) =>
         {
             if (!httpContext.User.Identity.IsAuthenticated)
                 return Results.Unauthorized();
@@ -47,8 +47,8 @@ public static class AdminEndpoints
             var items = await service.GetByDueDateAsync(dueDate, userId);
             return Results.Ok(items);
         })
-.WithName("FilterToDoByDueDate")
-.WithTags("ToDoItems");
+        .WithName("FilterToDoByDueDate")
+        .WithTags("ToDoItems");
 
         app.MapGet("/todo/overdue", async (
             [FromServices] IToDoItemService service,
@@ -73,8 +73,8 @@ public static class AdminEndpoints
             var todos = await service.GetAllToDoItemsByUserIdAsync(userId);
             return Results.Ok(todos);
         })
-.WithName("GetToDosByUserId")
-.WithTags("ToDos");
+        .WithName("GetToDosByUserId")
+        .WithTags("ToDos");
 
     }
 }
