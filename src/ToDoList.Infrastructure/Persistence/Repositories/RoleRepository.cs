@@ -20,6 +20,9 @@ public class RoleRepository : IRoleRepository
             ?? throw new InvalidOperationException("No roles found in the database.");
     }
 
+
+
+
     public async Task<ICollection<User>> GetAllUsersByRoleAsync(string role)
     {
         var roleEntity = await _context.UserRoles
