@@ -2,6 +2,7 @@
 using MyProject.Extensions;
 using Serilog;
 using Serilog.Events;
+using ToDoList.Api.Endpoints;
 using ToDoList.Api.Middlewares;
 using ToDoList.Application.Interfaces;
 using ToDoList.Application.Services;
@@ -17,22 +18,21 @@ namespace ToDoList.Api
             var builder = WebApplication.CreateBuilder(args);
 
             // Serilog konfiguratsiyasi
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(builder.Configuration) // 🔁 appsettings.json dan o‘qiydi
-                .Enrich.FromLogContext()
-                .WriteTo.File(
-                    path: "Logs/log-.txt",
-                    rollingInterval: RollingInterval.Day,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-                )
-                .CreateLogger();
+            //Log.Logger = new LoggerConfiguration()
+            //    .ReadFrom.Configuration(builder.Configuration) // 🔁 appsettings.json dan o‘qiydi
+            //    .Enrich.FromLogContext()
+            //    .WriteTo.File(
+            //        path: "Logs/log-.txt",
+            //        rollingInterval: RollingInterval.Day,
+            //        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+            //    )
+            //    .CreateLogger();
 
-            builder.Host.UseSerilog(); // Serilog’ni ulash
+            //builder.Host.UseSerilog(); // Serilog’ni ulash
 
             // 📦 Service va Controller’lar
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-
             // JWT + Swagger konfiguratsiya
             ServiceCollectionExtensions.AddSwaggerWithJwt(builder.Services);
 
@@ -42,15 +42,18 @@ namespace ToDoList.Api
             builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-            builder.Services.AddMemoryCache();
+            builder.Services.AddScoped<IToDoItemRepository, ToDoItemRepository>();
+            builder.Services.AddScoped<IToDoItemService, ToDoItemService>();
+
+            //builder.Services.AddMemoryCache();
 
 
             // 📂 DB ulash
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddDbContext<PostgresDbContext>(options =>
-               options.UseNpgsql(builder.Configuration.GetConnectionString("NpgslConnection")));
+            //builder.Services.AddDbContext<PostgresDbContext>(options =>
+            //   options.UseNpgsql(builder.Configuration.GetConnectionString("NpgslConnection")));
 
 
             var app = builder.Build();
@@ -67,10 +70,13 @@ namespace ToDoList.Api
             }
 
             app.UseHttpsRedirection();
+
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.MapControllers();
+            app.MapUserEndpoints();
+            app.MapAdminEndpoints();
+            //app.MapControllers();
             app.Run();
         }
     }

@@ -11,44 +11,44 @@ namespace ToDoList.Application.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepo;
-    private readonly IMemoryCache _cache;
-    private const string CacheKey = "AllUsersCacheKey";
-    public UserService(IUserRepository userRepo,IMemoryCache cache)
+    //private readonly IMemoryCache _cache;
+    //private const string CacheKey = "AllUsersCacheKey";
+    public UserService(IUserRepository userRepo/*,IMemoryCache cache*/)
     {
         _userRepo = userRepo;
-        _cache = cache;
+        //_cache = cache;
 
     }
 
-    public async Task<User> CreateUserAsync(UserCreateDto dto)
-    {
-        var salt = GenerateSalt();
-        var hashedPassword = HashPassword(dto.Password, salt);
-
-        var user = new User
+        public async Task<User> CreateUserAsync(UserCreateDto dto)
         {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            UserName = dto.UserName,
-            Password = hashedPassword,
-            Salt = salt,
-            PhoneNumber = dto.PhoneNumber,
-            Email = dto.Email,
-            RoleId = dto.RoleId,
+            var salt = GenerateSalt();
+            var hashedPassword = HashPassword(dto.Password, salt);
 
-        };
+            var user = new User
+            {
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                UserName = dto.UserName,
+                Password = hashedPassword,
+                Salt = salt,
+                PhoneNumber = dto.PhoneNumber,
+                Email = dto.Email,
+                RoleId = dto.RoleId,
 
-        var userId = await _userRepo.AddUserAsync(user);
-        user.UserId = userId;
-        return user;
-    }
+            };
+
+            var userId = await _userRepo.AddUserAsync(user);
+            user.UserId = userId;
+            return user;
+        }
 
     public async Task<List<UserGetDto>> GetAllUsersAsync()
     {
-        if (_cache.TryGetValue(CacheKey, out List<UserGetDto> cachedUsers))
-        {
-            return cachedUsers;
-        }
+        //if (_cache.TryGetValue(CacheKey, out List<UserGetDto> cachedUsers))
+        //{
+        //    return cachedUsers;
+        //}
 
         var users = await _userRepo.GetAllUsersAsync();
 
@@ -56,10 +56,10 @@ public class UserService : IUserService
             .Select(user => Converter.UserGetDtoConverter(user))
             .ToList();
 
-        _cache.Set(CacheKey, userDtos, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
-        });
+        //_cache.Set(CacheKey, userDtos, new MemoryCacheEntryOptions
+        //{
+        //    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+        //});
 
         return userDtos;
     }
@@ -97,7 +97,7 @@ public class UserService : IUserService
         user.Email = dto.Email;
 
         await _userRepo.UpdateUser(user); 
-        _cache.Remove(CacheKey);
+        //_cache.Remove(CacheKey);
     }
 
     public async Task<User> GetUserByIdAsync(long userId)
