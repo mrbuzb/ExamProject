@@ -1,7 +1,7 @@
 ﻿using ToDoList.Application.Dtos;
 using ToDoList.Domain.Entities;
 
-namespace ToDoList.Application.Serveces.Converters;
+namespace ToDoList.Application.Services.Converters;
 
 public static class Converter
 {

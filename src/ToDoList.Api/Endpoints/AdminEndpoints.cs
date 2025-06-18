@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ToDoList.Application.Serveces;
+using ToDoList.Application.Services;
 
 namespace ToDoList.Api.Endpoints;
 
