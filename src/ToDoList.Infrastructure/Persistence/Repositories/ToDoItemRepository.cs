@@ -19,7 +19,7 @@ public class ToDoItemRepository : IToDoItemRepository
     public async Task DeleteToDoItemByIdAsync(long id, long userId)
     {
         var item = await _context.ToDoItems
-            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            .FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
 
         if (item is not null)
         {
@@ -89,15 +89,27 @@ public class ToDoItemRepository : IToDoItemRepository
         throw new NotImplementedException();
     }
 
-    public Task UpdateToDoItemAsync(ToDoItem toDoItem)
+    public async Task UpdateToDoItemAsync(ToDoItem toDoItem)
     {
-        throw new NotImplementedException();
+        var existingItem = await _context.ToDoItems
+            .FirstOrDefaultAsync(x => x.ToDoItemId == toDoItem.ToDoItemId && x.UserId == toDoItem.UserId);
+
+        if (existingItem is null)
+            throw new KeyNotFoundException("ToDo item not found");
+
+        existingItem.Title = toDoItem.Title;
+        existingItem.Description = toDoItem.Description;
+        existingItem.IsCompleted = toDoItem.IsCompleted;
+        existingItem.DueDate = toDoItem.DueDate;
+
+        await _context.SaveChangesAsync();
     }
+
 
     public async Task MarkAsCompletedAsync(long id, long userId)
     {
         var item = await _context.ToDoItems
-            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            .FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
 
         if (item is not null)
         {
