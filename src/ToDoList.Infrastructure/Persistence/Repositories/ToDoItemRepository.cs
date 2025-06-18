@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using ToDoList.Application.DTOs;
 using ToDoList.Application.Interfaces;
 using ToDoList.Domain.Entities;
 
@@ -145,6 +146,24 @@ public class ToDoItemRepository : IToDoItemRepository
 
         _context.ToDoItems.RemoveRange(completedItems);
         return await _context.SaveChangesAsync();
+    }
+
+    public async Task<ToDoSummaryDto> GetSummaryAsync(long userId)
+    {
+        var now = DateTime.UtcNow;
+
+        var total = await _context.ToDoItems.CountAsync(x => x.UserId == userId);
+        var completed = await _context.ToDoItems.CountAsync(x => x.UserId == userId && x.IsCompleted);
+        var incompleted = await _context.ToDoItems.CountAsync(x => x.UserId == userId && !x.IsCompleted);
+        var overdue = await _context.ToDoItems.CountAsync(x => x.UserId == userId && !x.IsCompleted && x.DueDate < now);
+
+        return new ToDoSummaryDto
+        {
+            Total = total,
+            Completed = completed,
+            Incompleted = incompleted,
+            Overdue = overdue
+        };
     }
 
 }

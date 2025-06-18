@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ToDoList.Application.DTOs;
 using ToDoList.Domain.Entities;
 
 namespace ToDoList.Application.Interfaces;
@@ -24,5 +25,6 @@ public interface IToDoItemRepository
     Task<int> SelectTotalCountAsync();
     Task MarkAsCompletedAsync(long id, long userId);
     Task SetDueDateAsync(long id, long userId, DateTime dueDate);
+    Task<ToDoSummaryDto> GetSummaryAsync(long userId);
 
 }
