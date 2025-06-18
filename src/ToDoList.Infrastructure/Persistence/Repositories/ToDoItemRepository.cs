@@ -59,10 +59,14 @@ public class ToDoItemRepository : IToDoItemRepository
         throw new NotImplementedException();
     }
 
-    public Task<ICollection<ToDoItem>> SelectOverdueItemsAsync()
+    public async Task<ICollection<ToDoItem>> SelectOverdueItemsAsync(long userId)
     {
-        throw new NotImplementedException();
+        var now = DateTime.UtcNow;
+        return await _context.ToDoItems
+            .Where(x => x.DueDate < now && !x.IsCompleted && x.UserId == userId)
+            .ToListAsync();
     }
+
 
     public Task<ToDoItem> SelectToDoItemByIdAsync(long id, long userId)
     {
