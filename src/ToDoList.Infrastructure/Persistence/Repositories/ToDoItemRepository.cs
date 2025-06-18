@@ -34,10 +34,13 @@ public class ToDoItemRepository : IToDoItemRepository
     }
 
 
-    public Task<ICollection<ToDoItem>> SelectAllToDoItemsByUserIdAsync()
+    public async Task<ICollection<ToDoItem>> SelectAllToDoItemsByUserIdAsync(long userId)
     {
-        throw new NotImplementedException();
+        return await _context.ToDoItems
+            .Where(x => x.UserId == userId)
+            .ToListAsync();
     }
+
 
     public async Task<ICollection<ToDoItem>> SelectByDueDateAsync(DateTime dueDate, long userId)
     {
