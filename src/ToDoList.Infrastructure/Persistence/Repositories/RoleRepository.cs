@@ -17,11 +17,9 @@ public class RoleRepository : IRoleRepository
     public async Task<List<UserRole>> GetAllRolesAsync()
     {
         return await _context.UserRoles.ToListAsync()
+
             ?? throw new InvalidOperationException("No roles found in the database.");
     }
-
-
-
 
     public async Task<ICollection<User>> GetAllUsersByRoleAsync(string role)
     {
