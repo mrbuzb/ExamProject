@@ -13,6 +13,7 @@ public class RoleRepository : IRoleRepository
         _context = context;
     }
 
+
     public async Task<List<UserRole>> GetAllRolesAsync()
     {
         return await _context.UserRoles.ToListAsync()
