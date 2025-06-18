@@ -76,5 +76,23 @@ public static class AdminEndpoints
         .WithName("GetToDosByUserId")
         .WithTags("ToDos");
 
+        app.MapDelete("/todo/{id:long}", async (
+        long id,
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            await repository.DeleteToDoItemByIdAsync(id, userId);
+            return Results.NoContent();
+        })
+        .WithName("DeleteToDoItem")
+        .WithTags("ToDoItems");
+
     }
 }
