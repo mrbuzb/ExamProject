@@ -31,6 +31,7 @@ public class RoleRepository : IRoleRepository
         {
             throw new InvalidOperationException($"Role '{role}' not found.");
         }
+
         return await _context.Users
             .Where(u => u.RoleId == roleEntity.Id)
             .ToListAsync() 
