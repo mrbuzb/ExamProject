@@ -11,6 +11,8 @@ public interface IToDoItemRepository
 {
     Task<long> InsertToDoItemAsync(ToDoItem toDoItem);
     Task DeleteToDoItemByIdAsync(long id, long userId);
+    Task<int> DeleteCompletedAsync(long userId);
+
     Task UpdateToDoItemAsync(ToDoItem toDoItem);
     Task<ICollection<ToDoItem>> SelectAllToDoItemsByUserIdAsync(long userId);
     Task<ToDoItem> SelectToDoItemByIdAsync(long id, long userId);
