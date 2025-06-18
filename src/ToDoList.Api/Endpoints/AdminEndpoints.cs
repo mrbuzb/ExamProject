@@ -172,5 +172,26 @@ public static class AdminEndpoints
         .WithName("SetToDoDueDate")
         .WithTags("ToDoItems");
 
+
+        app.MapDelete("/todo/delete-completed", async (
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            var deletedCount = await repository.DeleteCompletedAsync(userId);
+
+            return deletedCount == 0
+                ? Results.NotFound("No completed ToDos found to delete.")
+                : Results.Ok($"{deletedCount} completed ToDos deleted.");
+        })
+        .WithName("DeleteCompletedToDos")
+        .WithTags("ToDoItems");
+
     }
 }

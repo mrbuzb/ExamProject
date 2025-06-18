@@ -129,4 +129,17 @@ public class ToDoItemRepository : IToDoItemRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task<int> DeleteCompletedAsync(long userId)
+    {
+        var completedItems = await _context.ToDoItems
+            .Where(x => x.UserId == userId && x.IsCompleted)
+            .ToListAsync();
+
+        if (completedItems.Count == 0)
+            return 0;
+
+        _context.ToDoItems.RemoveRange(completedItems);
+        return await _context.SaveChangesAsync();
+    }
+
 }
