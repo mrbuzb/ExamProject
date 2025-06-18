@@ -25,6 +25,7 @@ public static class UserEndpoint
         async (UserGetDto dto, [FromServices] IUserService userService) =>
         {
             await userService.UpdateAsync(dto);
+
             return Results.NoContent();
         })
         .WithName("UpdateUser");
