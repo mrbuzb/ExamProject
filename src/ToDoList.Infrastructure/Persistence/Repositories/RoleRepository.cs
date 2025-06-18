@@ -13,9 +13,11 @@ public class RoleRepository : IRoleRepository
         _context = context;
     }
 
+
     public async Task<List<UserRole>> GetAllRolesAsync()
     {
         return await _context.UserRoles.ToListAsync()
+
             ?? throw new InvalidOperationException("No roles found in the database.");
     }
 
@@ -27,6 +29,7 @@ public class RoleRepository : IRoleRepository
         {
             throw new InvalidOperationException($"Role '{role}' not found.");
         }
+
         return await _context.Users
             .Where(u => u.RoleId == roleEntity.Id)
             .ToListAsync() 

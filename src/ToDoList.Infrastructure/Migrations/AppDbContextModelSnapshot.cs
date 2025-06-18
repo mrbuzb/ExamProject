@@ -68,10 +68,14 @@ namespace ToDoList.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Method")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("Path")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("RequestBody")
                         .HasColumnType("nvarchar(max)");

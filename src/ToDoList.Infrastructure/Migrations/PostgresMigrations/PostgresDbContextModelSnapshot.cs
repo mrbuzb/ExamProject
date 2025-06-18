@@ -10,7 +10,6 @@ using ToDoList.Infrastructure.Persistence;
 
 namespace ToDoList.Infrastructure.Migrations.PostgresMigrations
 {
-    [DbContext(typeof(PostgresDbContext))]
     partial class PostgresDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
