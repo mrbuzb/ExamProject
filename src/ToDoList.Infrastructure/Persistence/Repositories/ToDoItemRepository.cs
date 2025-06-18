@@ -93,4 +93,17 @@ public class ToDoItemRepository : IToDoItemRepository
     {
         throw new NotImplementedException();
     }
+
+    public async Task MarkAsCompletedAsync(long id, long userId)
+    {
+        var item = await _context.ToDoItems
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+
+        if (item is not null)
+        {
+            item.IsCompleted = true;
+            await _context.SaveChangesAsync();
+        }
+    }
+
 }

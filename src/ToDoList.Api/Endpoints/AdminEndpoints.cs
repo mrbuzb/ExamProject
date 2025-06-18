@@ -32,6 +32,7 @@ public static class AdminEndpoints
             return Results.Ok(result);
         });
 
+
         app.MapGet("/todo/filter-by-date", async (
         [FromQuery] DateTime dueDate,
         [FromServices] IToDoItemService service,
@@ -49,6 +50,7 @@ public static class AdminEndpoints
         })
         .WithName("FilterToDoByDueDate")
         .WithTags("ToDoItems");
+
 
         app.MapGet("/todo/overdue", async (
             [FromServices] IToDoItemService service,
@@ -76,6 +78,7 @@ public static class AdminEndpoints
         .WithName("GetToDosByUserId")
         .WithTags("ToDos");
 
+
         app.MapDelete("/todo/{id:long}", async (
         long id,
         [FromServices] IToDoItemRepository repository,
@@ -92,6 +95,25 @@ public static class AdminEndpoints
             return Results.NoContent();
         })
         .WithName("DeleteToDoItem")
+        .WithTags("ToDoItems");
+
+
+        app.MapPost("/todo/complete/{id:long}", async (
+        long id,
+        [FromServices] IToDoItemRepository repository,
+        HttpContext httpContext) =>
+        {
+            if (!httpContext.User.Identity.IsAuthenticated)
+                return Results.Unauthorized();
+
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
+                return Results.BadRequest("Invalid user ID");
+
+            await repository.MarkAsCompletedAsync(id, userId);
+            return Results.Ok("ToDo marked as completed.");
+        })
+        .WithName("MarkToDoCompleted")
         .WithTags("ToDoItems");
 
     }

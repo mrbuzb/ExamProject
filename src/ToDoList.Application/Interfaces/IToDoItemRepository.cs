@@ -20,4 +20,6 @@ public interface IToDoItemRepository
     Task<ICollection<ToDoItem>> SearchToDoItemsAsync(string keyword);
     Task<ICollection<ToDoItem>> SelectOverdueItemsAsync(long userId);
     Task<int> SelectTotalCountAsync();
+    Task MarkAsCompletedAsync(long id, long userId);
+
 }
