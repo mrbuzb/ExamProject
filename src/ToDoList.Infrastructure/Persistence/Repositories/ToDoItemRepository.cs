@@ -16,10 +16,18 @@ public class ToDoItemRepository : IToDoItemRepository
     {
         _context = context;
     }
-    public Task DeleteToDoItemByIdAsync(long id, long userId)
+    public async Task DeleteToDoItemByIdAsync(long id, long userId)
     {
-        throw new NotImplementedException();
+        var item = await _context.ToDoItems
+            .FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
+
+        if (item is not null)
+        {
+            _context.ToDoItems.Remove(item);
+            await _context.SaveChangesAsync();
+        }
     }
+
 
     public Task<long> InsertToDoItemAsync(ToDoItem toDoItem)
     {
@@ -84,8 +92,57 @@ public class ToDoItemRepository : IToDoItemRepository
         throw new NotImplementedException();
     }
 
-    public Task UpdateToDoItemAsync(ToDoItem toDoItem)
+    public async Task UpdateToDoItemAsync(ToDoItem toDoItem)
     {
-        throw new NotImplementedException();
+        var existingItem = await _context.ToDoItems
+            .FirstOrDefaultAsync(x => x.ToDoItemId == toDoItem.ToDoItemId && x.UserId == toDoItem.UserId);
+
+        if (existingItem is null)
+            throw new KeyNotFoundException("ToDo item not found");
+
+        existingItem.Title = toDoItem.Title;
+        existingItem.Description = toDoItem.Description;
+        existingItem.IsCompleted = toDoItem.IsCompleted;
+        existingItem.DueDate = toDoItem.DueDate;
+
+        await _context.SaveChangesAsync();
     }
+
+
+    public async Task MarkAsCompletedAsync(long id, long userId)
+    {
+        var item = await _context.ToDoItems
+            .FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
+
+        if (item is not null)
+        {
+            item.IsCompleted = true;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+
+    public async Task SetDueDateAsync(long id, long userId, DateTime dueDate)
+    {
+        var item = await _context.ToDoItems.FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
+        if (item is null)
+            throw new Exception("ToDo item not found");
+
+        item.DueDate = dueDate;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<int> DeleteCompletedAsync(long userId)
+    {
+        var completedItems = await _context.ToDoItems
+            .Where(x => x.UserId == userId && x.IsCompleted)
+            .ToListAsync();
+
+        if (completedItems.Count == 0)
+            return 0;
+
+        _context.ToDoItems.RemoveRange(completedItems);
+        return await _context.SaveChangesAsync();
+    }
+
 }
