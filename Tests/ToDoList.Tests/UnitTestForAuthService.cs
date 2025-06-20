@@ -12,12 +12,12 @@ using Xunit;
 
 namespace ToDoList.Tests;
 
-public class AuthEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public class UnitTestForAuthService : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly Mock<IAuthService> _authServiceMock;
 
-    public AuthEndpointsTests(WebApplicationFactory<Program> factory)
+    public UnitTestForAuthService(WebApplicationFactory<Program> factory)
     {
         _authServiceMock = new Mock<IAuthService>();
         _factory = factory.WithWebHostBuilder(builder =>
