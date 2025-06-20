@@ -95,6 +95,7 @@ namespace ToDoList.Server.Controllers
         {
             await _authService.LogOutAsync(token);
             return NoContent();
+
         }
     }
 }
