@@ -21,8 +21,20 @@ namespace ToDoList.Api
             builder.ConfigureSerilog();
             builder.ConfigureJwtSettings();
 
-            var app = builder.Build();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowLocalhost5173", policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
+
+            var app = builder.Build();
+            app.UseCors("AllowLocalhost5173");
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             if (app.Environment.IsDevelopment())

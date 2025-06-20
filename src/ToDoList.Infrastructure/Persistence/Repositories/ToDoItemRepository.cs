@@ -69,7 +69,7 @@ public class ToDoItemRepository : IToDoItemRepository
     }
     public async Task<ICollection<ToDoItem>> SelectOverdueItemsAsync(long userId)
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         return await _context.ToDoItems
             .Where(x => x.DueDate < now && !x.IsCompleted && x.UserId == userId)
             .ToListAsync();
@@ -138,7 +138,7 @@ public class ToDoItemRepository : IToDoItemRepository
     }
     public async Task<ToDoSummaryDto> GetSummaryAsync(long userId)
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var total = await _context.ToDoItems.CountAsync(x => x.UserId == userId);
         var completed = await _context.ToDoItems.CountAsync(x => x.UserId == userId && x.IsCompleted);
