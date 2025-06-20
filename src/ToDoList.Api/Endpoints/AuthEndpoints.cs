@@ -34,6 +34,7 @@ public static class AuthEndpoints
         })
         .WithName("RefreshToken");
 
+
         userGroup.MapDelete("/log-out",
         async (string refreshToken, IAuthService _service) =>
         {
