@@ -21,6 +21,7 @@ public class RoleService(IRoleRepository _roleRepo) : IRoleService
         return users.Select(Converter).ToList();
     }
 
+
     private RoleGetDto Converter(UserRole role)
     {
         return new RoleGetDto

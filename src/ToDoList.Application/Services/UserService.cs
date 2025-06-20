@@ -22,6 +22,7 @@ public class UserService(IUserRepository _userRepository) : IUserService
             {
                 throw new NotAllowedException("Admin can not delete Admin or SuperAdmin");
             }
+
         }
     }
 
