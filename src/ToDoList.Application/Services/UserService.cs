@@ -13,7 +13,7 @@ public class UserService(IUserRepository _userRepository) : IUserService
         }
         else if (userRole == "Admin")
         {
-            var user = await _userRepository.GetUserByIdAsync(userId);
+            var user = await _userRepository.GetUserByIdAync(userId);
             if (user.Role.Name == "User")
             {
                 await _userRepository.DeleteUserByIdAsync(userId);

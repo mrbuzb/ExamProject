@@ -33,14 +33,15 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             PhoneNumber = userCreateDto.PhoneNumber,
             Password = tupleFromHasher.Hash,
             Salt = tupleFromHasher.Salt,
+            Email = userCreateDto.Email,
             RoleId = await _roleRepo.GetRoleIdAsync("User")
         };
 
-        long userId = await _userRepo.AddUserAsync(user);
+        long userId = await _userRepo.AddUserAync(user);
 
 
 
-        var foundUser = await _userRepo.GetUserByIdAsync(userId);
+        var foundUser = await _userRepo.GetUserByIdAync(userId);
 
 
         await _userRepo.UpdateUser(foundUser);
@@ -58,7 +59,7 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             throw new AuthException(errorMessages);
         }
 
-        var user = await _userRepo.GetUserByUserNameAsync(userLoginDto.UserName);
+        var user = await _userRepo.GetUserByUserNameAync(userLoginDto.UserName);
 
         var checkUserPassword = PasswordHasher.Verify(userLoginDto.Password, user.Password, user.Salt);
 
@@ -75,6 +76,7 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             LastName = user.LastName,
             PhoneNumber = user.PhoneNumber,
             Role = user.Role.Name,
+            Email = user.Email,
         };
 
         var token = _tokenService.GenerateToken(userGetDto);
@@ -119,7 +121,7 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
 
         refreshToken.IsRevoked = true;
 
-        var user = await _userRepo.GetUserByIdAsync(userId);
+        var user = await _userRepo.GetUserByIdAync(userId);
 
         var userGetDto = new UserGetDto()
         {
