@@ -1,86 +1,213 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ToDoList.Application.Dtos;
+using ToDoList.Application.Interfaces;
 using ToDoList.Application.Services;
 using ToDoList.Domain.Entities;
 
-public class AuthService : IAuthService
+public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _validator,
+    IUserRepository _userRepo, ITokenService _tokenService,
+    JwtAppSettings _jwtSetting, IValidator<UserLoginDto> _validatorForLogin,
+    IRefreshTokenRepository _refTokRepo) : IAuthService
 {
-    private readonly IUserService _userService;
-    private readonly IRefreshTokenService _refreshTokenService;
 
-    public AuthService(IUserService userService, IRefreshTokenService refreshTokenService)
+
+
+
+
+
+    public async Task<long> SignUpUserAsync(UserCreateDto userCreateDto)
     {
-        _userService = userService;
-        _refreshTokenService = refreshTokenService;
+        var validatorResult = await _validator.ValidateAsync(userCreateDto);
+        if (!validatorResult.IsValid)
+        {
+            string errorMessages = string.Join("; ", validatorResult.Errors.Select(e => e.ErrorMessage));
+            throw new AuthException(errorMessages);
+        }
+
+        User isEmailExists;
+        try
+        {
+            isEmailExists = await _userRepo.GetUserByEmail(userCreateDto.Email);
+        }
+        catch (Exception ex)
+        {
+            isEmailExists = null;
+        }
+
+        if (isEmailExists == null)
+        {
+
+            var tupleFromHasher = PasswordHasher.Hasher(userCreateDto.Password);
+
+            var confirmer = new UserConfirme()
+            {
+                IsConfirmed = false,
+                Gmail = userCreateDto.Email,
+            };
+
+
+            var user = new User()
+            {
+                Confirmer = confirmer,
+                FirstName = userCreateDto.FirstName,
+                LastName = userCreateDto.LastName,
+                UserName = userCreateDto.UserName,
+                PhoneNumber = userCreateDto.PhoneNumber,
+                Password = tupleFromHasher.Hash,
+                Salt = tupleFromHasher.Salt,
+                RoleId = await _roleRepo.GetRoleIdAsync("User")
+            };
+
+            long userId = await _userRepo.AddUserAync(user);
+
+
+
+            var foundUser = await _userRepo.GetUserByIdAync(userId);
+
+            foundUser.Confirmer!.UserId = userId;
+
+            await _userRepo.UpdateUser(foundUser);
+
+            return userId;
+        }
+        else if (isEmailExists.Confirmer!.IsConfirmed is false)
+        {
+
+            var tupleFromHasher = PasswordHasher.Hasher(userCreateDto.Password);
+
+            isEmailExists.FirstName = userCreateDto.FirstName;
+            isEmailExists.LastName = userCreateDto.LastName;
+            isEmailExists.UserName = userCreateDto.UserName;
+            isEmailExists.PhoneNumber = userCreateDto.PhoneNumber;
+            isEmailExists.Password = tupleFromHasher.Hash;
+            isEmailExists.Salt = tupleFromHasher.Salt;
+            isEmailExists.RoleId = await _roleRepo.GetRoleIdAsync("User");
+
+            await _userRepo.UpdateUser(isEmailExists);
+            return isEmailExists.UserId;
+        }
+
+        throw new NotAllowedException("This email already confirmed");
     }
 
-    public async Task<long> SignUpUserAsync(UserCreateDto dto)
+
+    public async Task<LoginResponseDto> LoginUserAsync(UserLoginDto userLoginDto)
     {
-        var user = await _userService.CreateUserAsync(dto);
-        return user.UserId;
+        var resultOfValidator = _validatorForLogin.Validate(userLoginDto);
+        if (!resultOfValidator.IsValid)
+        {
+            string errorMessages = string.Join("; ", resultOfValidator.Errors.Select(e => e.ErrorMessage));
+            throw new AuthException(errorMessages);
+        }
+
+        var user = await _userRepo.GetUserByUserNameAync(userLoginDto.UserName);
+
+        var checkUserPassword = PasswordHasher.Verify(userLoginDto.Password, user.Password, user.Salt);
+
+        if (checkUserPassword == false)
+        {
+            throw new UnauthorizedException("UserName or password incorrect");
+        }
+        if (user.Confirmer.IsConfirmed == false)
+        {
+            throw new UnauthorizedException("Email not confirmed");
+        }
+
+        var userGetDto = new UserGetDto()
+        {
+            UserId = user.UserId,
+            UserName = user.UserName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Confirmer.Gmail,
+            PhoneNumber = user.PhoneNumber,
+            Role = user.Role.Name,
+        };
+
+        var token = _tokenService.GenerateToken(userGetDto);
+        var refreshToken = _tokenService.GenerateRefreshToken();
+
+        var refreshTokenToDB = new RefreshToken()
+        {
+            Token = refreshToken,
+            Expires = DateTime.UtcNow.AddDays(21),
+            IsRevoked = false,
+            UserId = user.UserId
+        };
+
+        await _refTokRepo.AddRefreshToken(refreshTokenToDB);
+
+        var loginResponseDto = new LoginResponseDto()
+        {
+            AccessToken = token,
+            RefreshToken = refreshToken,
+            TokenType = "Bearer",
+            Expires = 24
+        };
+
+
+        return loginResponseDto;
     }
 
-    public async Task<LoginResponseDto> LoginUserAsync(UserLoginDto dto)
-    {
-        var user = await _userService.GetUserByUserNameAsync(dto.UserName);
-        if (user == null || user.Password != dto.Password)
-            throw new UnauthorizedAccessException("Invalid credentials");
 
-        var refreshToken = await _refreshTokenService.CreateRefreshTokenAsync(user.UserId);
+    public async Task<LoginResponseDto> RefreshTokenAsync(RefreshRequestDto request)
+    {
+        ClaimsPrincipal? principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
+        if (principal == null) throw new ForbiddenException("Invalid access token.");
+
+
+        var userClaim = principal.FindFirst(c => c.Type == "UserId");
+        var userId = long.Parse(userClaim.Value);
+
+
+        var refreshToken = await _refTokRepo.SelectRefreshToken(request.RefreshToken, userId);
+        if (refreshToken == null || refreshToken.Expires < DateTime.UtcNow || refreshToken.IsRevoked)
+            throw new UnauthorizedException("Invalid or expired refresh token.");
+
+        refreshToken.IsRevoked = true;
+
+        var user = await _userRepo.GetUserByIdAync(userId);
+
+        var userGetDto = new UserGetDto()
+        {
+            UserId = user.UserId,
+            UserName = user.UserName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Confirmer.Gmail,
+            PhoneNumber = user.PhoneNumber,
+            Role = user.Role.Name,
+        };
+
+        var newAccessToken = _tokenService.GenerateToken(userGetDto);
+        var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+        var refreshTokenToDB = new RefreshToken()
+        {
+            Token = newRefreshToken,
+            Expires = DateTime.UtcNow.AddDays(21),
+            IsRevoked = false,
+            UserId = user.UserId
+        };
+
+        await _refTokRepo.AddRefreshToken(refreshTokenToDB);
 
         return new LoginResponseDto
         {
-            AccessToken = Guid.NewGuid().ToString(),
-            RefreshToken = refreshToken.Token
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken,
+            TokenType = "Bearer",
+            Expires = 24
         };
     }
 
-    public async Task<LoginResponseDto> RefreshTokenAsync(RefreshRequestDto dto)
-    {
-        var oldToken = await _refreshTokenService.GetByTokenAsync(dto.Token);
-        if (oldToken == null || oldToken.IsRevoked || oldToken.Expires < DateTime.UtcNow)
-            throw new UnauthorizedAccessException("Token yaroqsiz");
+    public async Task LogOut(string token) => await _refTokRepo.DeleteRefreshToken(token);
 
-        var newToken = await _refreshTokenService.CreateRefreshTokenAsync(oldToken.UserId);
-        await _refreshTokenService.RevokeTokenAsync(dto.Token);
-
-        return new LoginResponseDto
-        {
-            AccessToken = Guid.NewGuid().ToString(),
-            RefreshToken = newToken.Token
-        };
-    }
-
-    public async Task LogOutAsync(string refreshToken)
-    {
-        await _refreshTokenService.RevokeTokenAsync(refreshToken);
-    }
-
-    private string GenerateJwtToken(User user, IConfiguration config)
-    {
-        var claims = new[]
-        {
-        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-        new Claim(ClaimTypes.Name, user.UserName),
-        new Claim(ClaimTypes.Role, user.Role?.Name ?? "User")
-    };
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: config["Jwt:Issuer"],
-            audience: null,
-            claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
 
 }
