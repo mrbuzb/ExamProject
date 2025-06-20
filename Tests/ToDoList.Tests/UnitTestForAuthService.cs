@@ -1,14 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using ToDoList.Api;
-using ToDoList.Api.Endpoints;
 using ToDoList.Application.Dtos;
 using ToDoList.Application.Services;
-using Xunit;
 
 namespace ToDoList.Tests;
 
