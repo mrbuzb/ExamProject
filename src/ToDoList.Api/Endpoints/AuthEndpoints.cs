@@ -8,6 +8,7 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
+
         
         var userGroup = app.MapGroup("/api/auth")
             .WithTags("Authentication");

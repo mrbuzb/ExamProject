@@ -40,5 +40,6 @@ public static class AdminEndpoints
             return Results.Ok();
         })
         .WithName("UpdateUserRole");
+
     }
 }
