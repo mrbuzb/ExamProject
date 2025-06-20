@@ -12,15 +12,6 @@ public static class UserEndpoint
         var userGroup = app.MapGroup("/api/user")
             .WithTags("User Endpoints");
 
-        // 👤 Foydalanuvchi yaratish
-        userGroup.MapPost("/create-user", [Authorize]
-        async (UserCreateDto dto, [FromServices] IUserService userService) =>
-        {
-            var userId = await userService.CreateUserAsync(dto);
-            return Results.Created($"/api/user/{userId.UserId}", userId);
-        })
-.WithName("CreateUser");
-
         userGroup.MapPut("/update-user", [Authorize]
         async (UserGetDto dto, [FromServices] IUserService userService) =>
         {
@@ -29,6 +20,7 @@ public static class UserEndpoint
             return Results.NoContent();
         })
         .WithName("UpdateUser");
+
 
     }
 }

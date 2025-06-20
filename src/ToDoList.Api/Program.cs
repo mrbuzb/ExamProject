@@ -30,13 +30,10 @@ namespace ToDoList.Api
 
             //builder.Host.UseSerilog(); // Serilog’ni ulash
 
-            // 📦 Service va Controller’lar
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-            // JWT + Swagger konfiguratsiya
             ServiceCollectionExtensions.AddSwaggerWithJwt(builder.Services);
 
-            // 👨‍💻 Servis va repo implementatsiyalari
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -45,15 +42,10 @@ namespace ToDoList.Api
             builder.Services.AddScoped<IToDoItemRepository, ToDoItemRepository>();
             builder.Services.AddScoped<IToDoItemService, ToDoItemService>();
 
-            //builder.Services.AddMemoryCache();
 
 
-            // 📂 DB ulash
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            //builder.Services.AddDbContext<PostgresDbContext>(options =>
-            //   options.UseNpgsql(builder.Configuration.GetConnectionString("NpgslConnection")));
 
 
             var app = builder.Build();
