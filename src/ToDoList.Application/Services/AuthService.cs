@@ -1,13 +1,12 @@
-﻿using FluentValidation;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+﻿using System.Security.Claims;
+using FluentValidation;
 using ToDoList.Application.Dtos;
+using ToDoList.Application.Helpers;
+using ToDoList.Application.Helpers.Security;
 using ToDoList.Application.Interfaces;
 using ToDoList.Application.Services;
+using ToDoList.Application.Settings;
+using ToDoList.Core.Errors;
 using ToDoList.Domain.Entities;
 
 public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _validator,
@@ -30,70 +29,29 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             throw new AuthException(errorMessages);
         }
 
-        User isEmailExists;
-        try
+        var tupleFromHasher = PasswordHasher.Hasher(userCreateDto.Password);
+
+        var user = new User()
         {
-            isEmailExists = await _userRepo.GetUserByEmail(userCreateDto.Email);
-        }
-        catch (Exception ex)
-        {
-            isEmailExists = null;
-        }
+            FirstName = userCreateDto.FirstName,
+            LastName = userCreateDto.LastName,
+            UserName = userCreateDto.UserName,
+            PhoneNumber = userCreateDto.PhoneNumber,
+            Password = tupleFromHasher.Hash,
+            Salt = tupleFromHasher.Salt,
+            RoleId = await _roleRepo.GetRoleIdAsync("User")
+        };
 
-        if (isEmailExists == null)
-        {
-
-            var tupleFromHasher = PasswordHasher.Hasher(userCreateDto.Password);
-
-            var confirmer = new UserConfirme()
-            {
-                IsConfirmed = false,
-                Gmail = userCreateDto.Email,
-            };
-
-
-            var user = new User()
-            {
-                Confirmer = confirmer,
-                FirstName = userCreateDto.FirstName,
-                LastName = userCreateDto.LastName,
-                UserName = userCreateDto.UserName,
-                PhoneNumber = userCreateDto.PhoneNumber,
-                Password = tupleFromHasher.Hash,
-                Salt = tupleFromHasher.Salt,
-                RoleId = await _roleRepo.GetRoleIdAsync("User")
-            };
-
-            long userId = await _userRepo.AddUserAync(user);
+        long userId = await _userRepo.AddUserAsync(user);
 
 
 
-            var foundUser = await _userRepo.GetUserByIdAync(userId);
+        var foundUser = await _userRepo.GetUserByIdAsync(userId);
 
-            foundUser.Confirmer!.UserId = userId;
 
-            await _userRepo.UpdateUser(foundUser);
+        await _userRepo.UpdateUser(foundUser);
 
-            return userId;
-        }
-        else if (isEmailExists.Confirmer!.IsConfirmed is false)
-        {
-
-            var tupleFromHasher = PasswordHasher.Hasher(userCreateDto.Password);
-
-            isEmailExists.FirstName = userCreateDto.FirstName;
-            isEmailExists.LastName = userCreateDto.LastName;
-            isEmailExists.UserName = userCreateDto.UserName;
-            isEmailExists.PhoneNumber = userCreateDto.PhoneNumber;
-            isEmailExists.Password = tupleFromHasher.Hash;
-            isEmailExists.Salt = tupleFromHasher.Salt;
-            isEmailExists.RoleId = await _roleRepo.GetRoleIdAsync("User");
-
-            await _userRepo.UpdateUser(isEmailExists);
-            return isEmailExists.UserId;
-        }
-
-        throw new NotAllowedException("This email already confirmed");
+        return userId;
     }
 
 
@@ -106,17 +64,13 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             throw new AuthException(errorMessages);
         }
 
-        var user = await _userRepo.GetUserByUserNameAync(userLoginDto.UserName);
+        var user = await _userRepo.GetUserByUserNameAsync(userLoginDto.UserName);
 
         var checkUserPassword = PasswordHasher.Verify(userLoginDto.Password, user.Password, user.Salt);
 
         if (checkUserPassword == false)
         {
             throw new UnauthorizedException("UserName or password incorrect");
-        }
-        if (user.Confirmer.IsConfirmed == false)
-        {
-            throw new UnauthorizedException("Email not confirmed");
         }
 
         var userGetDto = new UserGetDto()
@@ -125,7 +79,6 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             UserName = user.UserName,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            Email = user.Confirmer.Gmail,
             PhoneNumber = user.PhoneNumber,
             Role = user.Role.Name,
         };
@@ -141,7 +94,7 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             UserId = user.UserId
         };
 
-        await _refTokRepo.AddRefreshToken(refreshTokenToDB);
+        await _refTokRepo.CreateAsync(refreshTokenToDB);
 
         var loginResponseDto = new LoginResponseDto()
         {
@@ -166,13 +119,13 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
         var userId = long.Parse(userClaim.Value);
 
 
-        var refreshToken = await _refTokRepo.SelectRefreshToken(request.RefreshToken, userId);
+        var refreshToken = await _refTokRepo.GetByTokenAsync(request.RefreshToken, userId);
         if (refreshToken == null || refreshToken.Expires < DateTime.UtcNow || refreshToken.IsRevoked)
             throw new UnauthorizedException("Invalid or expired refresh token.");
 
         refreshToken.IsRevoked = true;
 
-        var user = await _userRepo.GetUserByIdAync(userId);
+        var user = await _userRepo.GetUserByIdAsync(userId);
 
         var userGetDto = new UserGetDto()
         {
@@ -180,7 +133,6 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             UserName = user.UserName,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            Email = user.Confirmer.Gmail,
             PhoneNumber = user.PhoneNumber,
             Role = user.Role.Name,
         };
@@ -196,7 +148,7 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
             UserId = user.UserId
         };
 
-        await _refTokRepo.AddRefreshToken(refreshTokenToDB);
+        await _refTokRepo.CreateAsync(refreshTokenToDB);
 
         return new LoginResponseDto
         {
@@ -207,7 +159,7 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
         };
     }
 
-    public async Task LogOut(string token) => await _refTokRepo.DeleteRefreshToken(token);
+    public async Task LogOut(string token) => await _refTokRepo.(token);
 
 
 }

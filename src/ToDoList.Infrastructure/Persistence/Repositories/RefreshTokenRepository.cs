@@ -25,18 +25,6 @@ public class RefreshTokenRepository : IRefreshTokenRepository
         return token;
     }
 
-    public async Task<RefreshToken> GetByTokenAsync(string token)
-    {
-        var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == token);
-        if (refreshToken == null)
-        {
-            throw new InvalidOperationException($"Refresh token with token '{token}' not found.");
-        }
-        return refreshToken;
-    }
+    public async Task<RefreshToken> GetByTokenAsync(string refreshToken, long userId) => await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == refreshToken && rt.UserId == userId);
 
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
 }
