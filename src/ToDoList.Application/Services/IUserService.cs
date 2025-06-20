@@ -10,9 +10,6 @@ namespace ToDoList.Application.Services;
 
 public interface IUserService
 {
-    Task<User> CreateUserAsync(UserCreateDto dto);
-    Task<User> GetUserByUserNameAsync(string username);
-    Task<User> GetUserByIdAsync(long userId);
-    Task<List<UserGetDto>> GetAllUsersAsync();
-    Task UpdateAsync(UserGetDto dto);
+    Task UpdateUserRoleAsync(long userId, string userRole);
+    Task DeleteUserByIdAsync(long userId, string userRole);
 }

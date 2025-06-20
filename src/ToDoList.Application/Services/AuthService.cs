@@ -14,12 +14,6 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
     JwtAppSettings _jwtSetting, IValidator<UserLoginDto> _validatorForLogin,
     IRefreshTokenRepository _refTokRepo) : IAuthService
 {
-
-
-
-
-
-
     public async Task<long> SignUpUserAsync(UserCreateDto userCreateDto)
     {
         var validatorResult = await _validator.ValidateAsync(userCreateDto);
@@ -159,7 +153,7 @@ public class AuthService(IRoleRepository _roleRepo, IValidator<UserCreateDto> _v
         };
     }
 
-    public async Task LogOut(string token) => await _refTokRepo.(token);
+    public async Task LogOutAsync(string token) => await _refTokRepo.DeleteRefreshToken(token);
 
 
 }
