@@ -1,13 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MyProject.Extensions;
-using Serilog;
-using Serilog.Events;
+﻿using MyProject.Extensions;
+using ToDoList.Api.Configurations;
 using ToDoList.Api.Endpoints;
 using ToDoList.Api.Middlewares;
-using ToDoList.Application.Interfaces;
-using ToDoList.Application.Services;
-using ToDoList.Infrastructure.Persistence;
-using ToDoList.Infrastructure.Persistence.Repositories;
 
 namespace ToDoList.Api
 {
@@ -17,44 +11,20 @@ namespace ToDoList.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Serilog konfiguratsiyasi
-            //Log.Logger = new LoggerConfiguration()
-            //    .ReadFrom.Configuration(builder.Configuration) // 🔁 appsettings.json dan o‘qiydi
-            //    .Enrich.FromLogContext()
-            //    .WriteTo.File(
-            //        path: "Logs/log-.txt",
-            //        rollingInterval: RollingInterval.Day,
-            //        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-            //    )
-            //    .CreateLogger();
-
-            //builder.Host.UseSerilog(); // Serilog’ni ulash
-
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             ServiceCollectionExtensions.AddSwaggerWithJwt(builder.Services);
 
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-            builder.Services.AddScoped<IUserRepository, UserRepository>();
-            builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-            builder.Services.AddScoped<IToDoItemRepository, ToDoItemRepository>();
-            builder.Services.AddScoped<IToDoItemService, ToDoItemService>();
-
-
-
-            builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+            builder.ConfigurationJwtAuth();
+            builder.ConfigureDependicys();
+            builder.ConfigureDataBase();
+            builder.ConfigureSerilog();
 
             var app = builder.Build();
 
-            // 🌐 Middleware loglash
             app.UseMiddleware<RequestResponseLoggingMiddleware>();
             app.UseMiddleware<SuccessRequestLoggingMiddleware>();
 
-            // 📄 Swagger faqat dev uchun
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -68,6 +38,9 @@ namespace ToDoList.Api
 
             app.MapUserEndpoints();
             app.MapAdminEndpoints();
+            app.MapAuthEndpoints();
+            app.MapToDoItemEndpoints();
+
             //app.MapControllers();
             app.Run();
         }
