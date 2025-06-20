@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using ToDoList.Application.Dtos;
 using ToDoList.Application.DTOs;
 using ToDoList.Application.Interfaces;
 using ToDoList.Domain.Entities;
@@ -28,32 +29,24 @@ public class ToDoItemRepository : IToDoItemRepository
             await _context.SaveChangesAsync();
         }
     }
-
-
     public async Task<long> InsertToDoItemAsync(ToDoItem toDoItem)
     {
         await _context.ToDoItems.AddAsync(toDoItem);
         await _context.SaveChangesAsync();
         return toDoItem.ToDoItemId;
     }
-
-
-    public async Task<ICollection<ToDoItem>> SearchToDoItemsAsync(string keyword)
+    public async Task<ICollection<ToDoItem>> SearchToDoItemsAsync(string keyword, long userId)
     {
         return await _context.ToDoItems
-            .Where(x => x.Title.Contains(keyword) || x.Description.Contains(keyword))
+            .Where(x => x.Title.Contains(keyword) || x.Description.Contains(keyword)&&x.UserId == userId)
             .ToListAsync();
     }
-
-
     public async Task<ICollection<ToDoItem>> SelectAllToDoItemsByUserIdAsync(long userId)
     {
         return await _context.ToDoItems
             .Where(x => x.UserId == userId)
             .ToListAsync();
     }
-
-
     public async Task<ICollection<ToDoItem>> SelectByDueDateAsync(DateTime dueDate, long userId)
     {
         var items = await _context.ToDoItems
@@ -62,23 +55,18 @@ public class ToDoItemRepository : IToDoItemRepository
 
         return items;
     }
-
-
-    public async Task<ICollection<ToDoItem>> SelectCompletedAsync()
+    public async Task<ICollection<ToDoItem>> SelectCompletedAsync(long userId)
     {
         return await _context.ToDoItems
-            .Where(x => x.IsCompleted)
+            .Where(x => x.IsCompleted&&x.UserId == userId)
             .ToListAsync();
     }
-
-
-    public async Task<ICollection<ToDoItem>> SelectIncompletedAsync()
+    public async Task<ICollection<ToDoItem>> SelectIncompletedAsync(long userId)
     {
         return await _context.ToDoItems
-            .Where(x => !x.IsCompleted)
+            .Where(x => !x.IsCompleted&&x.UserId == userId)
             .ToListAsync();
     }
-
     public async Task<ICollection<ToDoItem>> SelectOverdueItemsAsync(long userId)
     {
         var now = DateTime.UtcNow;
@@ -86,9 +74,6 @@ public class ToDoItemRepository : IToDoItemRepository
             .Where(x => x.DueDate < now && !x.IsCompleted && x.UserId == userId)
             .ToListAsync();
     }
-
-
-
     public async Task<ToDoItem> SelectToDoItemByIdAsync(long id, long userId)
 
     {
@@ -100,18 +85,14 @@ public class ToDoItemRepository : IToDoItemRepository
 
         return item;
     }
-
-
-    public async Task<int> SelectTotalCountAsync()
+    public int SelectTotalCountAsync(long userId)
     {
-        return await _context.ToDoItems.CountAsync();
+        return _context.ToDoItems.Where(x=>x.UserId == userId).Count();
     }
-
-
-    public async Task UpdateToDoItemAsync(ToDoItem toDoItem)
+    public async Task UpdateToDoItemAsync(ToDoItem toDoItem, long userId)
     {
         var existingItem = await _context.ToDoItems
-            .FirstOrDefaultAsync(x => x.ToDoItemId == toDoItem.ToDoItemId && x.UserId == toDoItem.UserId);
+            .FirstOrDefaultAsync(x => x.ToDoItemId == toDoItem.ToDoItemId && x.UserId == userId);
 
         if (existingItem is null)
             throw new KeyNotFoundException("ToDo item not found");
@@ -123,8 +104,6 @@ public class ToDoItemRepository : IToDoItemRepository
 
         await _context.SaveChangesAsync();
     }
-
-
     public async Task MarkAsCompletedAsync(long id, long userId)
     {
         var item = await _context.ToDoItems
@@ -136,8 +115,6 @@ public class ToDoItemRepository : IToDoItemRepository
             await _context.SaveChangesAsync();
         }
     }
-
-
     public async Task SetDueDateAsync(long id, long userId, DateTime dueDate)
     {
         var item = await _context.ToDoItems.FirstOrDefaultAsync(x => x.ToDoItemId == id && x.UserId == userId);
@@ -147,7 +124,6 @@ public class ToDoItemRepository : IToDoItemRepository
         item.DueDate = dueDate;
         await _context.SaveChangesAsync();
     }
-
     public async Task<int> DeleteCompletedAsync(long userId)
     {
         var completedItems = await _context.ToDoItems
@@ -160,7 +136,6 @@ public class ToDoItemRepository : IToDoItemRepository
         _context.ToDoItems.RemoveRange(completedItems);
         return await _context.SaveChangesAsync();
     }
-
     public async Task<ToDoSummaryDto> GetSummaryAsync(long userId)
     {
         var now = DateTime.UtcNow;
@@ -178,5 +153,4 @@ public class ToDoItemRepository : IToDoItemRepository
             Overdue = overdue
         };
     }
-
 }

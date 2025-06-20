@@ -19,11 +19,11 @@ namespace ToDoList.Api
             builder.ConfigureDependicys();
             builder.ConfigureDataBase();
             builder.ConfigureSerilog();
+            builder.ConfigureJwtSettings();
 
             var app = builder.Build();
 
-            app.UseMiddleware<RequestResponseLoggingMiddleware>();
-            app.UseMiddleware<SuccessRequestLoggingMiddleware>();
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             if (app.Environment.IsDevelopment())
             {
@@ -36,7 +36,7 @@ namespace ToDoList.Api
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.MapUserEndpoints();
+            app.MapRoleEndpoints();
             app.MapAdminEndpoints();
             app.MapAuthEndpoints();
             app.MapToDoItemEndpoints();

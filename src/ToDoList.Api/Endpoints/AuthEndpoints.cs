@@ -8,45 +8,36 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/auth").WithTags("Auth");
+        
+        var userGroup = app.MapGroup("/api/auth")
+            .WithTags("Authentication");
 
-        // Sign Up
-        group.MapPost("/signUp", async (
-            [FromBody] UserCreateDto dto,
-            [FromServices] IAuthService authService) =>
+        userGroup.MapPost("/sign-up",
+        async (UserCreateDto user, IAuthService _service) =>
         {
-            var userId = await authService.SignUpUserAsync(dto);
-            return Results.Ok(userId);
+            return Results.Ok(await _service.SignUpUserAsync(user));
         })
         .WithName("SignUp");
 
-        // Login
-        group.MapPost("/login", async (
-            [FromBody] UserLoginDto dto,
-            [FromServices] IAuthService authService) =>
+        userGroup.MapPost("/login",
+        async (UserLoginDto user, IAuthService _service) =>
         {
-            var result = await authService.LoginUserAsync(dto);
-            return Results.Ok(result);
+            return Results.Ok(await _service.LoginUserAsync(user));
         })
         .WithName("Login");
 
-        // Refresh Token
-        group.MapPost("/refreshToken", async (
-            [FromBody] RefreshRequestDto dto,
-            [FromServices] IAuthService authService) =>
+        userGroup.MapPut("/refresh-token",
+        async (RefreshRequestDto refresh, IAuthService _service) =>
         {
-            var result = await authService.RefreshTokenAsync(dto);
-            return Results.Ok(result);
+            return Results.Ok(await _service.RefreshTokenAsync(refresh));
         })
         .WithName("RefreshToken");
 
-        // Log Out
-        group.MapDelete("/logOut", async (
-            [FromQuery] string token,
-            [FromServices] IAuthService authService) =>
+        userGroup.MapDelete("/log-out",
+        async (string refreshToken, IAuthService _service) =>
         {
-            await authService.LogOutAsync(token);
-            return Results.NoContent();
+            await _service.LogOutAsync(refreshToken);
+            return Results.Ok();
         })
         .WithName("LogOut");
     }

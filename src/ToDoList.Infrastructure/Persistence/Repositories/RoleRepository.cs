@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ToDoList.Application.Interfaces;
+using ToDoList.Core.Errors;
 using ToDoList.Domain.Entities;
 
 namespace ToDoList.Infrastructure.Persistence.Repositories;
@@ -14,36 +15,25 @@ public class RoleRepository : IRoleRepository
     }
 
 
-    public async Task<List<UserRole>> GetAllRolesAsync()
-    {
-        return await _context.UserRoles.ToListAsync()
-
-            ?? throw new InvalidOperationException("No roles found in the database.");
-    }
+    public async Task<List<UserRole>> GetAllRolesAsync() => await _context.UserRoles.ToListAsync();
 
     public async Task<ICollection<User>> GetAllUsersByRoleAsync(string role)
     {
-        var roleEntity = await _context.UserRoles
-            .FirstOrDefaultAsync(r => r.Name.Equals(role, StringComparison.OrdinalIgnoreCase));
-        if (roleEntity == null)
+        var foundRole = await _context.UserRoles.Include(u => u.Users).FirstOrDefaultAsync(_ => _.Name == role);
+        if (foundRole is null)
         {
-            throw new InvalidOperationException($"Role '{role}' not found.");
+            throw new EntityNotFoundException(role);
         }
-
-        return await _context.Users
-            .Where(u => u.RoleId == roleEntity.Id)
-            .ToListAsync() 
-            ?? throw new InvalidOperationException("No users found for the specified role.");
+        return foundRole.Users;
     }
 
     public async Task<long> GetRoleIdAsync(string role)
     {
-        var roleEntity = await _context.UserRoles
-            .FirstOrDefaultAsync(r => r.Name.Equals(role, StringComparison.OrdinalIgnoreCase));
-        if (roleEntity == null)
+        var foundRole = await _context.UserRoles.FirstOrDefaultAsync(_ => _.Name == role);
+        if (foundRole is null)
         {
-            throw new InvalidOperationException($"Role '{role}' not found.");
+            throw new EntityNotFoundException(role + " - not found");
         }
-        return roleEntity.Id;
+        return foundRole.Id;
     }
 }

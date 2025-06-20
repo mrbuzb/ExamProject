@@ -10,10 +10,46 @@ public static class Converter
         return new ToDoItemGetDto
         {
             ToDoItemId = toDoItem.ToDoItemId,
+             UserId= toDoItem.UserId,
             Title = toDoItem.Title,
             Description = toDoItem.Description,
             IsCompleted = toDoItem.IsCompleted,
             CreatedAt = toDoItem.CreatedAt,
+            DueDate = toDoItem.DueDate
+        };
+    }
+    public static ToDoItem ToDoItemGetDtoConverter(ToDoItemUpdateDto toDoItem)
+    {
+        return new ToDoItem
+        {
+            ToDoItemId = toDoItem.ToDoItemId,
+            Title = toDoItem.Title,
+            Description = toDoItem.Description,
+            IsCompleted = toDoItem.IsCompleted,
+            DueDate = toDoItem.DueDate
+        };
+    }
+    public static ToDoItem ToDoItemGetDtoConverter(ToDoItemGetDto toDoItem)
+    {
+        return new ToDoItem
+        {
+            ToDoItemId = toDoItem.ToDoItemId,
+            UserId = toDoItem.UserId,
+            Title = toDoItem.Title,
+            Description = toDoItem.Description,
+            IsCompleted = toDoItem.IsCompleted,
+            CreatedAt = toDoItem.CreatedAt,
+            DueDate = toDoItem.DueDate
+        };
+    }
+    public static ToDoItem ToDoItemGetDtoConverter(ToDoItemCreateDto toDoItem)
+    {
+        return new ToDoItem
+        {
+            Title = toDoItem.Title,
+            Description = toDoItem.Description,
+            IsCompleted = false,
+            CreatedAt = DateTime.Now,
             DueDate = toDoItem.DueDate
         };
     }

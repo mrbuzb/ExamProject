@@ -1,7 +1,9 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using ToDoList.Application.Dtos;
 using ToDoList.Application.Interfaces;
 using ToDoList.Application.Services;
+using ToDoList.Core.Errors;
 using ToDoList.Domain.Entities;
 
 namespace ToDoList.Api.Endpoints;
@@ -13,129 +15,87 @@ public static class ToDoItemEndpoints
         var adminGroup = app.MapGroup("/api/to-do-item")
             .WithTags("ToDoItem Endpoints");
 
-
-        app.MapGet("/api/todos/search", async (
-            [FromQuery] string keyword,
-            [FromServices] IToDoItemService service) =>
+        
+        app.MapGet("/search", async (string keyword, IToDoItemService service, HttpContext context) =>
         {
-            var result = await service.SearchToDoItemsAsync(keyword);
+            var userId = context.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
+            var result = await service.SearchToDoItemsAsync(keyword, long.Parse(userId));
             return Results.Ok(result);
         });
 
-        app.MapGet("/todo/filter-by-date", async (
-            [FromQuery] DateTime dueDate,
-            [FromServices] IToDoItemService service,
-            HttpContext httpContext) =>
+        app.MapGet("/filter-by-date", async (DateTime dueDate, IToDoItemService service, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
-
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            var items = await service.GetByDueDateAsync(dueDate, userId);
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
+            var items = await service.GetByDueDateAsync(dueDate, long.Parse(userId));
             return Results.Ok(items);
         })
-        .WithName("FilterToDoByDueDate")
-        .WithTags("ToDoItems");
+        .WithName("FilterToDoByDueDate");
 
 
-        app.MapGet("/todo/overdue", async (
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapGet("/overdue", async (IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
 
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            var items = await repository.SelectOverdueItemsAsync(userId);
+            var items = await repository.SelectOverdueItemsAsync(long.Parse(userId));
             return Results.Ok(items);
         })
-        .WithName("GetOverdueToDos")
-        .WithTags("ToDoItems");
+        .WithName("GetOverdueToDos");
 
 
 
 
-        app.MapGet("/api/todos/user/{userId:long}", async (
-            long userId,
-            [FromServices] IToDoItemService service) =>
+        app.MapGet("/get-all", async (IToDoItemService service, HttpContext context) =>
         {
-            var todos = await service.GetAllToDoItemsByUserIdAsync(userId);
+            var userId = context.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
+            var todos = await service.GetAllToDoItemsByUserIdAsync(long.Parse(userId));
             return Results.Ok(todos);
         })
-        .WithName("GetToDosByUserId")
-        .WithTags("ToDos");
+        .WithName("GetToDosByUserId");
 
 
 
 
 
-        app.MapDelete("/todo/{id:long}", async (
-            long id,
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapDelete("/delete", async (long id, IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
 
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            await repository.DeleteToDoItemByIdAsync(id, userId);
+            await repository.DeleteToDoItemByIdAsync(id, long.Parse(userId));
             return Results.NoContent();
         })
-        .WithName("DeleteToDoItem")
-        .WithTags("ToDoItems");
+        .WithName("DeleteToDoItem");
 
 
 
 
 
-        app.MapPost("/todo/complete/{id:long}", async (
-           long id,
-           [FromServices] IToDoItemRepository repository,
-           HttpContext httpContext) =>
+        app.MapPatch("/mark-as-compleated", async (long id, IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
 
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            await repository.MarkAsCompletedAsync(id, userId);
+            await repository.MarkAsCompletedAsync(id, long.Parse(userId));
             return Results.Ok("ToDo marked as completed.");
         })
-       .WithName("MarkToDoCompleted")
-       .WithTags("ToDoItems");
+       .WithName("MarkToDoCompleted");
 
 
 
 
 
-        app.MapPut("/todo/update", async (
-            [FromBody] ToDoItem updatedItem,
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapPut("/update", async (ToDoItemUpdateDto updatedItem, IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
-
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            updatedItem.UserId = userId;
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
 
             try
             {
-                await repository.UpdateToDoItemAsync(updatedItem);
+                await repository.UpdateToDoItemAsync(updatedItem, long.Parse(userId));
                 return Results.Ok("ToDo item updated successfully");
             }
             catch (KeyNotFoundException)
@@ -143,28 +103,19 @@ public static class ToDoItemEndpoints
                 return Results.NotFound("ToDo item not found");
             }
         })
-        .WithName("UpdateToDoItem")
-        .WithTags("ToDoItems");
+        .WithName("UpdateToDoItem");
 
 
 
 
-        app.MapPut("/todo/{id}/set-due-date", async (
-            long id,
-            [FromBody] DateTime dueDate,
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapPut("/set-due-date", async (long id, DateTime dueDate, IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
-
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
 
             try
             {
-                await repository.SetDueDateAsync(id, userId, dueDate);
+                await repository.SetDueDateAsync(id, long.Parse(userId), dueDate);
                 return Results.Ok($"Due date set to {dueDate}");
             }
             catch (Exception ex)
@@ -172,96 +123,55 @@ public static class ToDoItemEndpoints
                 return Results.NotFound(ex.Message);
             }
         })
-        .WithName("SetToDoDueDate")
-        .WithTags("ToDoItems");
+        .WithName("SetToDoDueDate");
 
 
 
 
-        app.MapDelete("/todo/delete-completed", async (
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapDelete("/delete-all-completed", async (IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
 
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            var deletedCount = await repository.DeleteCompletedAsync(userId);
+            var deletedCount = await repository.DeleteCompletedAsync(long.Parse(userId));
 
             return deletedCount == 0
                 ? Results.NotFound("No completed ToDos found to delete.")
                 : Results.Ok($"{deletedCount} completed ToDos deleted.");
         })
-        .WithName("DeleteCompletedToDos")
-        .WithTags("ToDoItems");
+        .WithName("DeleteCompletedToDos");
 
 
 
 
-        app.MapGet("/todo/summary", async (
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapGet("/get-summary", async (IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
-
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            var summary = await repository.GetSummaryAsync(userId);
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
+            var summary = await repository.GetSummaryAsync(long.Parse(userId));
             return Results.Ok(summary);
         })
-        .WithName("GetToDoSummary")
-        .WithTags("ToDoItems");
+        .WithName("GetToDoSummary");
 
 
-
-
-
-
-
-
-
-        app.MapPost("/todo", async (
-            [FromBody] ToDoItem toDoItem,
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapPost("/create", async (ToDoItemCreateDto toDoItem, IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
-
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
-            toDoItem.UserId = userId;
-            var id = await repository.InsertToDoItemAsync(toDoItem);
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
+            var id = await repository.InsertToDoItemAsync(toDoItem, long.Parse(userId));
             return Results.Created($"/todo/{id}", new { Id = id });
         })
-        .WithName("CreateToDoItem")
-        .WithTags("ToDoItems");
+        .WithName("CreateToDoItem");
 
 
 
-        app.MapGet("/todo/{id:long}", async (
-            long id,
-            [FromServices] IToDoItemRepository repository,
-            HttpContext httpContext) =>
+        app.MapGet("select-by-id", async (long id, IToDoItemService repository, HttpContext httpContext) =>
         {
-            if (!httpContext.User.Identity.IsAuthenticated)
-                return Results.Unauthorized();
-
-            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim is null || !long.TryParse(userIdClaim.Value, out var userId))
-                return Results.BadRequest("Invalid user ID");
-
+            var userId = httpContext.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
             try
             {
-                var item = await repository.SelectToDoItemByIdAsync(id, userId);
+                var item = await repository.SelectToDoItemByIdAsync(id, long.Parse(userId));
                 return Results.Ok(item);
             }
             catch (KeyNotFoundException)
@@ -269,21 +179,20 @@ public static class ToDoItemEndpoints
                 return Results.NotFound();
             }
         })
-        .WithName("GetToDoItemById")
-        .WithTags("ToDoItems");
+        .WithName("GetToDoItemById");
 
 
 
 
 
-        app.MapGet("/todo/count", async (
-            [FromServices] IToDoItemRepository repository) =>
+        app.MapGet("/count", async (IToDoItemService service, HttpContext context) =>
         {
-            var count = await repository.SelectTotalCountAsync();
+            var userId = context.User.FindFirst("UserId")?.Value;
+            if (userId is null) throw new AuthException();
+            var count = service.SelectTotalCountAsync(long.Parse(userId));
             return Results.Ok(count);
         })
-        .WithName("GetTotalToDoCount")
-        .WithTags("ToDoItems");
+        .WithName("GetTotalToDoCount");
 
     }
 }
