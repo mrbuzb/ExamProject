@@ -24,6 +24,7 @@ public static class ToDoItemEndpoints
             return Results.Ok(result);
         });
 
+
         app.MapGet("/filter-by-date", async (DateTime dueDate, IToDoItemService service, HttpContext httpContext) =>
         {
             var userId = httpContext.User.FindFirst("UserId")?.Value;
@@ -140,9 +141,6 @@ public static class ToDoItemEndpoints
                 : Results.Ok($"{deletedCount} completed ToDos deleted.");
         })
         .WithName("DeleteCompletedToDos");
-
-
-
 
         app.MapGet("/get-summary", async (IToDoItemService repository, HttpContext httpContext) =>
         {
