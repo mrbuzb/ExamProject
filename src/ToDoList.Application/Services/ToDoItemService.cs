@@ -137,7 +137,7 @@ namespace ToDoList.Application.Services
             return entitys.Select(Converter.ToDoItemGetDtoConverter).ToList();
         }
 
-        public async Task<ICollection<ToDoItemGetDto>> SelectIncompletedAsync(long userId)
+        public async Task<ICollection<ToDoItemGetDto>> SelectIncompletedAsync(long userId)     
         {
             var entitys = await _toDoItemRepository.SelectIncompletedAsync(userId);
             return entitys.Select(Converter.ToDoItemGetDtoConverter).ToList();
