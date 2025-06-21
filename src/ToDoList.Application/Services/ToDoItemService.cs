@@ -88,6 +88,7 @@ namespace ToDoList.Application.Services
             }
             var entity = Converter.ToDoItemGetDtoConverter(dto);
             entity.UserId = userId;
+            entity.CreatedAt = DateTime.Now;
             return await _toDoItemRepository.InsertToDoItemAsync(entity);
         }
 

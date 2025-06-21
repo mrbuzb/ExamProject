@@ -17,29 +17,51 @@ export const TodoForm: React.FC<TodoFormProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
-  const [formData, setFormData] = useState<CreateTodoRequest>({
+  const today = new Date();
+  const defaultDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+  const defaultTime = today.toTimeString().slice(0, 5);   // HH:mm
+
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
-    dueDate: new Date().toISOString().split('T')[0],
+    dueDate: defaultDate,
+    dueTime: defaultTime,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      dueDate: new Date(formData.dueDate).toISOString(),
-    });
+
+    const fullDateTime = new Date(`${formData.dueDate}T${formData.dueTime}`);
+
+    // ✅ Local vaqtni to‘g‘ri ISO formatga o‘girish (UTC xatolarni oldini olish uchun)
+    const localISOString = new Date(
+      fullDateTime.getTime() - fullDateTime.getTimezoneOffset() * 60000
+    ).toISOString();
+
+    const payload: CreateTodoRequest = {
+      title: formData.title,
+      description: formData.description,
+      dueDate: localISOString,
+      isCompleted: false,
+    };
+
+    onSubmit(payload);
+
     setFormData({
       title: '',
       description: '',
-      dueDate: new Date().toISOString().split('T')[0],
+      dueDate: defaultDate,
+      dueTime: defaultTime,
     });
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
   };
 
@@ -69,29 +91,30 @@ export const TodoForm: React.FC<TodoFormProps> = ({
           />
         </div>
 
-        <Input
-          label="Due Date"
-          name="dueDate"
-          type="date"
-          value={formData.dueDate}
-          onChange={handleChange}
-          required
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="Due Date"
+            name="dueDate"
+            type="date"
+            value={formData.dueDate}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            label="Due Time"
+            name="dueTime"
+            type="time"
+            value={formData.dueTime}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
         <div className="flex space-x-3 pt-4">
-          <Button
-            type="submit"
-            className="flex-1"
-            isLoading={isLoading}
-          >
+          <Button type="submit" className="flex-1" isLoading={isLoading}>
             Create Todo
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-            className="flex-1"
-          >
+          <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
             Cancel
           </Button>
         </div>
